@@ -160,20 +160,26 @@ export const handlers = [
       paymentMethod: string;
       message?: string;
       isAnonymous?: boolean;
+      donor?: { name?: string; email?: string };
     };
     const db = getDb();
+    const txId = `dow-mock-${Date.now().toString(36)}`;
+    const isManualReview = body.amount >= 500_000;
     const donation = {
       _id: `mock-${Date.now()}`,
       campaignId: body.campaignId ?? null,
       donorId: null,
-      donorSnapshot: { name: "Guest Giver" },
+      donorSnapshot: {
+        name: body.donor?.name ?? "Guest Giver",
+        email: body.donor?.email,
+      },
       amount: body.amount,
       currency: "ETB",
       paymentMethod: body.paymentMethod,
-      transactionId: `dow-mock-${Date.now()}`,
+      transactionId: txId,
       paidAt: null,
       status: "pending" as const,
-      requiresManualReview: body.amount >= 500_000,
+      requiresManualReview: isManualReview,
       message: body.message,
       isAnonymous: body.isAnonymous ?? false,
       createdBy: "guest",
@@ -182,12 +188,38 @@ export const handlers = [
       updatedAt: new Date().toISOString(),
     };
     db.donations.push(donation as never);
+
+    if (body.paymentMethod !== "manual") {
+      setTimeout(() => {
+        const target = db.donations.find((d) => d.transactionId === txId);
+        if (!target) return;
+        if (target.status !== "pending") return;
+        target.paidAt = new Date().toISOString();
+        target.status = isManualReview ? "manual_review" : "completed";
+        target.updatedAt = new Date().toISOString();
+        if (isManualReview) return;
+        const campaign = db.campaigns.find((c) => c._id === target.campaignId);
+        if (campaign) {
+          campaign.currentAmount = (campaign.currentAmount ?? 0) + target.amount;
+          campaign.updatedAt = new Date().toISOString();
+        }
+        if (target.campaignId) {
+          const projectId = campaign?.projectId;
+          const project = db.projects.find((p) => p._id === projectId);
+          if (project) {
+            project.currentFunding = (project.currentFunding ?? 0) + target.amount;
+            project.updatedAt = new Date().toISOString();
+          }
+        }
+      }, 3_000);
+    }
+
     return HttpResponse.json(
       {
         donation,
         checkout: {
-          checkoutUrl: `https://example.com/mock-checkout/${donation.transactionId}`,
-          transactionRef: donation.transactionId,
+          checkoutUrl: `/campaigns/${body.campaignId}/donate/return?tx_ref=${txId}&status=success&amount=${body.amount}&gateway=${body.paymentMethod}`,
+          transactionRef: txId,
           gateway: body.paymentMethod,
         },
       },

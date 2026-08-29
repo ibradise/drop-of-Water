@@ -1,11 +1,20 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth/context";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/cn";
+
+const NAV = [
+  { href: "/projects", label: "Projects" },
+  { href: "/campaigns", label: "Campaigns" },
+  { href: "/certificates", label: "Certificates" },
+];
 
 export function SiteHeader() {
   const { state, signOut } = useAuth();
+  const pathname = usePathname();
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
@@ -14,15 +23,21 @@ export function SiteHeader() {
             Drop of Water
           </Link>
           <nav className="hidden items-center gap-6 text-sm text-slate-600 sm:flex">
-            <Link href="/projects" className="hover:text-slate-900">
-              Projects
-            </Link>
-            <Link href="/campaigns" className="hover:text-slate-900">
-              Campaigns
-            </Link>
-            <Link href="/certificates" className="hover:text-slate-900">
-              Certificates
-            </Link>
+            {NAV.map((item) => {
+              const active = pathname === item.href || pathname.startsWith(item.href + "/");
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "transition-colors hover:text-slate-900",
+                    active ? "font-medium text-slate-900" : "text-slate-600",
+                  )}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
           </nav>
         </div>
         <div className="flex items-center gap-2">

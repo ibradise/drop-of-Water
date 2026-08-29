@@ -1,25 +1,26 @@
-import { PROJECT_STATUSES, type ProjectStatus } from "@/lib/enums";
 import { cn } from "@/lib/cn";
 
-export function StatusFilter({
+export function StatusFilter<T extends string>({
   value,
   onChange,
-  options = PROJECT_STATUSES,
+  options,
   className,
+  allLabel = "All",
 }: {
-  value: ProjectStatus | null;
-  onChange: (next: ProjectStatus | null) => void;
-  options?: readonly ProjectStatus[];
+  value: T | null;
+  onChange: (next: T | null) => void;
+  options: readonly T[];
   className?: string;
+  allLabel?: string;
 }) {
   return (
     <div className={cn("flex flex-wrap items-center gap-1.5", className)}>
       <FilterChip active={value === null} onClick={() => onChange(null)}>
-        All
+        {allLabel}
       </FilterChip>
       {options.map((s) => (
         <FilterChip key={s} active={value === s} onClick={() => onChange(s)}>
-          {s.replace(/_/g, " ")}
+          {String(s).replace(/_/g, " ")}
         </FilterChip>
       ))}
     </div>

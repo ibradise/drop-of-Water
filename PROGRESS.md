@@ -88,8 +88,57 @@
 - The mock layer runs only in the browser (MSW service worker). The API client routes to `/api/mock/*` when `NEXT_PUBLIC_API_MOCK=true`. SSR sees no mock data, which is fine for now — public pages use client components for data fetching anyway.
 - Skipped the optional `?includeSponsorships=true` on the project detail page; it lives on the campaign detail page where it's most useful.
 
-### Next: Phase 2 — public campaigns + donate flow
-- `/campaigns` list (with status filter, pagination)
-- `/campaigns/[id]` detail with sponsors (using `?includeSponsorships=true`)
-- `/campaigns/[id]/donate` form with the state machine (submit → redirect to gateway → return)
-- Public donor list on the campaign page
+### Next: Phase 3 — auth + onboarding forms
+
+---
+
+## Phase 2 — Public campaigns + donate flow ✅ complete
+
+### Done
+- **MSW enhancements**:
+  - `POST /donations` now returns the full `{ donation, checkout }` shape and auto-settles the donation after 3 s in the in-memory store (3 s for normal, `manual_review` immediately for ≥ 5,000 ETB). The campaign `currentAmount` and project `currentFunding` are updated on settlement. The `checkoutUrl` points back to our own `/donate/return` page so we can demo the full flow without an external gateway.
+  - Guest donor `name`/`email` are honored on `POST /donations`; the existing donor-list handler now redacts anonymous donors.
+- **New `useNow` hook** (`src/lib/use-now.ts`) for "days left" countdowns that don't trip the React Compiler purity rule.
+- **Generic `StatusFilter`** — typed over `T extends string`, reused by both Projects and Campaigns lists.
+- **`/campaigns` list page** with status filter (all 6 statuses), pagination, skeletons, empty state, error retry. `?status=` is reflected in the URL.
+- **`/campaigns/[id]` detail page** that fetches the campaign with `?includeSponsorships=true`, the backing project, the public donor list, and related impact updates in parallel. Renders:
+  - hero with photo, status, days-left, progress bar, donate + view-project buttons
+  - story section
+  - backing project card with its own progress bar and link to project page
+  - sponsors section (matching / milestone / campus_sponsor / general badges)
+  - recent donors (top 5) with total count
+  - latest field updates
+- **Donate flow** (`/campaigns/[id]/donate`):
+  - 6 preset amounts + custom input in whole ETB
+  - payment method picker (Chapa / Zeffy / PayPal / Stripe); Zeffy shows USD/CAD note + same-email reminder
+  - guest donor name/email fields (required for gifts at/above the 5,000 ETB review threshold; zod `superRefine` enforces it)
+  - optional message + anonymous toggle
+  - live side panel showing the gift summary + campaign progress
+  - submit → `POST /donations` → `window.location.assign(checkoutUrl)`
+  - threshold banner explains the manual-review flow
+- **Donate return** (`/campaigns/[id]/donate/return`):
+  - reads `?status=`, `?tx_ref=`, `?amount=` from the gateway callback
+  - 4 outcome panels: processing, completed, manual_review, failed
+  - polls the campaign donor list every 2 s (until a tx-id match is found or 20 attempts)
+  - "What happens next?" explainer
+- **Featured campaigns** on the home page (top 3 active, with skeletons).
+- **Site header nav** now highlights the active route (Projects / Campaigns / Certificates).
+
+### Verified
+- `npx tsc --noEmit` — clean
+- `npm run lint` — 0 errors, 1 known false-positive warning from React Compiler against react-hook-form's `watch()` (incompatible library)
+- `npm run build` — 8 routes: `/`, `/_not-found`, `/campaigns`, `/campaigns/[id]`, `/campaigns/[id]/donate`, `/campaigns/[id]/donate/return`, `/projects`, `/projects/[id]`
+- `npm run dev` + `curl` — all routes return 200, return page shows the "Processing" panel on a `?status=pending` callback
+
+### Decisions made
+- The mock `POST /donations` immediately returns a `checkoutUrl` pointing at our own `/donate/return` so the entire UX is exercisable end-to-end without a real gateway. The "checkout" is a soft redirect; the donor sees our return page with a "Processing" state, then it polls and the donation settles after ~3 s.
+- We poll the public donor list to detect settlement rather than adding a public `GET /donations/:id` (which doesn't exist in the spec). When the backend is wired up, we can add a targeted `GET /donations/by-transaction/:txRef` or hook into the gateway's webhook and switch the return page over.
+- The donate form shows preset amounts as whole ETB; the conversion to smallest-unit happens at submit time (`parseToSmallestUnit`).
+- We deliberately used `useForm`'s `watch()` for the live side-panel summary. React Compiler's static analysis can't safely memoize it; this is a known limitation, not a bug.
+
+### Next: Phase 3 — auth + onboarding forms
+- Sign-in form (email/password + Google)
+- Sign-up form (email/password, then onboarding to `POST /users`)
+- `/onboarding` page that calls `POST /users` with the requested profile fields
+- Auth-aware nav (already in place) — flesh out the redirect flow
+- Route guards: send `needs-onboarding` users to `/onboarding`, send unauthenticated users away from `/(account)`

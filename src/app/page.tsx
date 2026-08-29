@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Droplets, Heart, MapPin, Users } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { FeaturedCampaigns } from "@/components/featured-campaigns";
 
 const FEATURES = [
   {
@@ -66,6 +67,8 @@ export default function HomePage() {
           </Card>
         ))}
       </section>
+
+      <FeaturedCampaigns />
 
       <section className="rounded-2xl bg-sky-600 p-8 text-white sm:p-12">
         <div className="flex flex-col items-start gap-4">
