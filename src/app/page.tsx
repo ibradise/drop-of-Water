@@ -1,69 +1,96 @@
-import Image from "next/image";
+import Link from "next/link";
+import { Droplets, Heart, MapPin, Users } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
-export default function Home() {
+const FEATURES = [
+  {
+    icon: Droplets,
+    title: "Fund real water projects",
+    body: "Every campaign backs a verified well, borehole, or water-infrastructure project on the ground.",
+  },
+  {
+    icon: Heart,
+    title: "See your impact",
+    body: "Receive impact updates from the field and earn shareable certificates for your contributions.",
+  },
+  {
+    icon: Users,
+    title: "Run a campaign",
+    body: "Students, chapters, and corporate partners can create campaigns and rally their communities.",
+  },
+  {
+    icon: MapPin,
+    title: "Built for Ethiopia",
+    body: "Local payment partners (Chapa, Zeffy) and currency-aware totals — give in ETB with confidence.",
+  },
+] as const;
+
+export default function HomePage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className="flex flex-col gap-16">
+      <section className="flex flex-col items-center gap-6 pt-8 text-center sm:pt-16">
+        <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-medium uppercase tracking-wide text-sky-700">
+          Crowdfunding for clean water
+        </span>
+        <h1 className="max-w-3xl text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
+          Every drop counts. Fund a well, change a community.
+        </h1>
+        <p className="max-w-2xl text-lg text-slate-600">
+          Drop of Water connects donors, fundraisers, and on-the-ground project teams
+          to build lasting water infrastructure across Ethiopia.
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <Link href="/campaigns">
+            <Button size="lg">Browse campaigns</Button>
+          </Link>
+          <Link href="/projects">
+            <Button size="lg" variant="outline">
+              See projects
+            </Button>
+          </Link>
+        </div>
+      </section>
+
+      <section className="grid gap-4 sm:grid-cols-2">
+        {FEATURES.map((f) => (
+          <Card key={f.title}>
+            <CardHeader>
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sky-50 text-sky-600">
+                <f.icon className="h-5 w-5" />
+              </div>
+              <CardTitle>{f.title}</CardTitle>
+              <CardDescription>{f.body}</CardDescription>
+            </CardHeader>
+            <CardContent />
+          </Card>
+        ))}
+      </section>
+
+      <section className="rounded-2xl bg-sky-600 p-8 text-white sm:p-12">
+        <div className="flex flex-col items-start gap-4">
+          <h2 className="text-2xl font-semibold sm:text-3xl">Ready to make a difference?</h2>
+          <p className="max-w-xl text-sky-100">
+            Whether you give 100 ETB or run a chapter campaign of 100,000 ETB, you&rsquo;ll
+            see the wells you helped fund and the people they serve.
           </p>
+          <div className="flex flex-wrap gap-3">
+            <Link href="/campaigns">
+              <Button variant="secondary" size="lg">
+                Donate now
+              </Button>
+            </Link>
+            <Link href="/sign-up">
+              <Button
+                size="lg"
+                className="border border-white/40 bg-transparent text-white hover:bg-white/10"
+              >
+                Start a campaign
+              </Button>
+            </Link>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+      </section>
     </div>
   );
 }
