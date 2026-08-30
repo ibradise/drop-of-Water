@@ -1,5 +1,6 @@
 import { http, HttpResponse, passthrough } from "msw";
 import { getDb } from "./db";
+import { makeId } from "./ids";
 
 type Query = Record<string, string | string[] | undefined>;
 
@@ -286,10 +287,107 @@ export const handlers = [
     return HttpResponse.json(cert);
   }),
 
-  http.get("/api/mock/users/me", () => {
+  http.get("/api/mock/users/me", ({ request }) => {
+    const db = getDb();
+    const token = readToken(request);
+    if (!token) {
+      return HttpResponse.json(
+        { statusCode: 401, message: "Missing Firebase token", error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+    // Demo tokens: "mock-meron" => seeded user; "mock-anon-<uid>" => most recently
+    // registered user with that firebaseUid. Falls through to 401 for anything else.
+    if (token === "mock-meron") {
+      const meron = db.users.find((u) => u.id === "u-donor2");
+      if (meron) return HttpResponse.json(meron);
+    }
+    if (token.startsWith("mock-anon")) {
+      const match = db.users.find((u) => u.firebaseUid === token);
+      if (match) return HttpResponse.json(match);
+      return HttpResponse.json(
+        { statusCode: 401, message: "No DoW account for this Firebase user", error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
     return HttpResponse.json(
       { statusCode: 401, message: "No DoW account for this Firebase user", error: "Unauthorized" },
       { status: 401 },
     );
+  }),
+
+  http.post("/api/mock/users", async ({ request }) => {
+    const body = (await request.json()) as {
+      name: string;
+      phoneNumber?: string;
+      roles?: string[];
+      entityType?: string;
+      profile?: Record<string, unknown>;
+    };
+    const db = getDb();
+    const token = readToken(request);
+    if (!token) {
+      return HttpResponse.json(
+        { statusCode: 401, message: "Missing Firebase token", error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+    const user = {
+      _id: makeId(),
+      id: `u-${Date.now().toString(36)}`,
+      firebaseUid: token,
+      email: "demo@example.com",
+      name: body.name,
+      phoneNumber: body.phoneNumber,
+      roles: body.roles && body.roles.length > 0 ? body.roles : ["donor"],
+      entityType: body.entityType ?? null,
+      isVerified: false,
+      isActive: true,
+      profile: body.profile,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    db.users.push(user as never);
+    return HttpResponse.json(user, { status: 201 });
+  }),
+
+  http.patch("/api/mock/users/me", async ({ request }) => {
+    const db = getDb();
+    const body = (await request.json()) as Record<string, unknown>;
+    const token = readToken(request);
+    if (token !== "mock-meron") {
+      return HttpResponse.json(
+        { statusCode: 401, message: "Not signed in", error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+    const user = db.users.find((u) => u.id === "u-donor2");
+    if (!user) {
+      return HttpResponse.json(
+        { statusCode: 404, message: "User not found", error: "Not Found" },
+        { status: 404 },
+      );
+    }
+    Object.assign(user, body, { updatedAt: new Date().toISOString() });
+    return HttpResponse.json(user);
+  }),
+
+  http.post("/api/mock/notifications/device-tokens", async ({ request }) => {
+    const db = getDb();
+    const body = (await request.json()) as { token: string };
+    const authToken = readToken(request);
+    db.deviceTokens.push({
+      token: body.token,
+      userId: authToken === "mock-meron" ? "u-donor2" : "guest",
+      createdAt: new Date().toISOString(),
+    });
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  http.delete("/api/mock/notifications/device-tokens", async ({ request }) => {
+    const db = getDb();
+    const body = (await request.json()) as { token: string };
+    db.deviceTokens = db.deviceTokens.filter((t) => t.token !== body.token);
+    return new HttpResponse(null, { status: 204 });
   }),
 ];

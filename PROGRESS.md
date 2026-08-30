@@ -136,9 +136,47 @@
 - The donate form shows preset amounts as whole ETB; the conversion to smallest-unit happens at submit time (`parseToSmallestUnit`).
 - We deliberately used `useForm`'s `watch()` for the live side-panel summary. React Compiler's static analysis can't safely memoize it; this is a known limitation, not a bug.
 
-### Next: Phase 3 — auth + onboarding forms
-- Sign-in form (email/password + Google)
-- Sign-up form (email/password, then onboarding to `POST /users`)
-- `/onboarding` page that calls `POST /users` with the requested profile fields
-- Auth-aware nav (already in place) — flesh out the redirect flow
-- Route guards: send `needs-onboarding` users to `/onboarding`, send unauthenticated users away from `/(account)`
+### Next: Phase 4 — account dashboard (my donations, my certificates, my campaigns)
+
+---
+
+## Phase 3 — Auth + onboarding ✅ complete
+
+### Done
+- **MSW handlers for the user lifecycle**:
+  - Smarter `GET /users/me` that looks up the bearer token: `mock-meron` → seeded Meron user; any `mock-anon*` → a previously registered user with that `firebaseUid`; anything else → 401.
+  - `POST /api/mock/users` accepts the registration payload and pushes a new user into the in-memory store.
+  - `PATCH /api/mock/users/me` lets the seeded Meron update her profile.
+  - `POST /api/mock/notifications/device-tokens` and the matching `DELETE` (204s both) so the device-token registration story is at least API-complete.
+- **Auth context refactor** (`src/lib/auth/context.tsx`):
+  - Added a "mock mode" path that reads a fake token from `localStorage` and synthesizes a Firebase User, so the whole auth flow can be exercised without a real Firebase project.
+  - `useAuth()` now exposes `isMockMode` and a `devSignIn(mode)` helper for the demo buttons.
+  - `signInWithEmail` / `signUpWithEmail` / `signInWithGoogle` / `signOut` / `resetPassword` all route through either Firebase or the mock path, depending on `NEXT_PUBLIC_API_MOCK`.
+  - `refreshDowProfile()` re-fetches `GET /users/me` and flips the state.
+- **Auth forms**:
+  - `/sign-in` — email/password form (react-hook-form + zod) + "Continue with Google" button. In mock mode, two extra demo buttons ("Sign in as Meron" and "Sign in as a brand-new user"). Reads `?next=` to send the user back where they came from.
+  - `/sign-up` — email + password + confirm. On success, the mock flow leaves the token at `mock-anon*` and redirects to `/onboarding`. The real Firebase flow does the same.
+  - `/onboarding` — full profile form (name, phone, entity type, bio/location/organization, one social link). Validates with zod. On submit, calls `POST /users`, then `refreshDowProfile()` to flip from `needs-onboarding` to `authenticated`.
+- **Account route group with route guards**:
+  - `src/app/(account)/layout.tsx` redirects unauthenticated users to `/sign-in?next=…` and `needs-onboarding` users to `/onboarding`. Renders a tabbed sub-nav (Profile / My donations / My certificates / My campaigns / Notifications).
+  - `src/app/(account)/me/page.tsx` — the profile landing. Shows the DoW profile (name, email, phone, entity type, role badges, optional profile fields) plus a sidebar of "what you can do" links to the other tabs.
+  - Placeholder pages for `/me/donations`, `/me/certificates`, `/me/campaigns`, `/me/notifications` — real implementations land in Phases 4 and 5.
+
+### Verified
+- `npx tsc --noEmit` — clean
+- `npm run lint` — 0 errors, 1 known false positive from React Compiler against react-hook-form's `watch()`
+- `npm run build` — 14 routes including the 5 placeholder account pages
+- `npm run dev` + `curl` — `/sign-in`, `/sign-up`, `/onboarding`, `/me` all 200; the protected ones correctly show "Loading…" on SSR and the route guard takes over on the client
+
+### Decisions made
+- The "mock mode" lives entirely on the client (fake token in `localStorage`, synthesized Firebase User object). When the real Firebase project is wired up, `signInWithEmail` will just go through the real SDK and the `mock-meron` / `mock-anon` branches never run. No code in the API client or the resource modules needs to change.
+- The `MockBoot` is fine to keep on for the demo. The auth forms surface two demo buttons so the rest of the app (donate, my-account) is reachable without a Firebase project.
+- The onboarding schema is built from scratch in the form (not extending `registerUserSchema`) because zod 4 doesn't allow `.extend` on `ZodOptional<ZodObject>`. The form's values are translated into a `RegisterUserInput` payload at submit time.
+- The account layout tabs include placeholders for the next two phases so the navigation is real now and the implementation lands in Phase 4/5 without restructuring.
+
+### Next: Phase 4 — account dashboard
+- `/me/donations` — `GET /donations/me` list, status filters, deep-link to the matching campaign.
+- `/me/certificates` — `GET /certificates/me` with the bronze/silver/gold/champion badge, "Generate" button (calls `POST /certificates/generate`), share-link modal with the certificate code.
+- `/me/campaigns` placeholder → Phase 5.
+- `/me/notifications` — list from `GET /notifications/me`, register/unregister FCM device tokens.
+- Cross-cutting: the donate form should suggest signing in (or require it) when the gift hits the manual-review threshold.
