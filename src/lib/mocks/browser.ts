@@ -71,6 +71,8 @@ const ROUTE_PATTERNS: string[] = [
   "/impact-updates/campaign/:campaignId",
   "/impact-updates/:id",
   "/certificates/me",
+  "/certificates/generate",
+  "/certificates/:id/visibility",
   "/certificates/:code",
   "/notifications/me",
   "/notifications/device-tokens",

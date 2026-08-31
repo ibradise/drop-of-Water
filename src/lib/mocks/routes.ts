@@ -400,6 +400,101 @@ export async function dispatchMock(ctx: Ctx): Promise<Response | null> {
   }
 
   // ---- Certificates ----
+  // /certificates/:code (must come AFTER /certificates/me so that "me" isn't
+  // treated as a share code).
+  if (segs[0] === "certificates" && segs[1] === "me" && m === "GET") {
+    const token = readToken(headers);
+    const userId = token === "mock-meron" ? "u-donor2" : null;
+    const type = typeof query.type === "string" ? query.type : undefined;
+    const includeSuperseded =
+      query.includeSuperseded === "true" || query.includeSuperseded === "1";
+    let items = getDb().certificates.filter((c) => c.recipient.id === userId);
+    if (type) items = items.filter((c) => c.type === type);
+    if (!includeSuperseded) items = items.filter((c) => !c.supersededAt);
+    const { page, limit } = readPage(query);
+    return json(200, paginate(items, page, limit));
+  }
+
+  if (segs[0] === "certificates" && segs[1] === "generate" && m === "POST") {
+    const b = (body ?? {}) as {
+      type?: "fundraising" | "volunteer_time";
+      campaignIds?: string[];
+      from?: string;
+      to?: string;
+    };
+    if (!b.type) return badRequest("type is required");
+    const token = readToken(headers);
+    const userId = token === "mock-meron" ? "u-donor2" : "u-anon";
+    const userName = token === "mock-meron" ? "Meron Tadesse" : "Demo User";
+
+    const db = getDb();
+    const userDonations = db.donations.filter(
+      (d) =>
+        d.donorId === userId &&
+        d.status === "completed" &&
+        (b.campaignIds ? b.campaignIds.includes(d.campaignId ?? "") : true),
+    );
+    const totalAmount = userDonations.reduce((sum, d) => sum + d.amount, 0);
+    const totalHours = 0;
+
+    const totalUnits = b.type === "fundraising" ? totalAmount / 100 : totalHours;
+    let badgeLevel: "bronze" | "silver" | "gold" | "champion" = "bronze";
+    if (totalUnits >= 250_000) badgeLevel = "champion";
+    else if (totalUnits >= 50_000) badgeLevel = "gold";
+    else if (totalUnits >= 10_000) badgeLevel = "silver";
+    else if (totalUnits < 1_000 && b.type === "fundraising") {
+      return json(400, {
+        statusCode: 400,
+        message: "Below the bronze tier (1,000 ETB).",
+        error: "Bad Request",
+      });
+    }
+
+    const code = `DOW-${b.type === "fundraising" ? "FR" : "VT"}-${makeId().toUpperCase().slice(0, 8)}`;
+    const cert = {
+      id: makeId(),
+      type: b.type,
+      title:
+        badgeLevel.charAt(0).toUpperCase() +
+        badgeLevel.slice(1) +
+        " " +
+        (b.type === "fundraising" ? "Fundraising" : "Volunteer Time") +
+        " Certificate",
+      description: `Awarded to ${userName} for ${b.type === "fundraising" ? `raising ${(totalAmount / 100).toFixed(2)} ETB` : `${totalHours} hours of volunteer time`} on Drop of Water — ${badgeLevel.charAt(0).toUpperCase() + badgeLevel.slice(1)} tier.`,
+      badgeLevel,
+      recipient: { id: userId, name: userName },
+      totalAmount: b.type === "fundraising" ? totalAmount : 0,
+      totalHours: b.type === "volunteer_time" ? totalHours : 0,
+      currency: b.type === "fundraising" ? "ETB" : null,
+      relatedCampaignIds: b.campaignIds ?? [],
+      certificateCode: code,
+      isPublic: false,
+      issuedAt: new Date().toISOString(),
+      version: 1,
+      supersededAt: null,
+    };
+    db.certificates.push(cert as never);
+    return json(201, cert);
+  }
+
+  if (
+    segs[0] === "certificates" &&
+    segs[1] &&
+    segs[1] !== "me" &&
+    segs[1] !== "generate" &&
+    segs[2] === "visibility" &&
+    segs.length === 3 &&
+    m === "PATCH"
+  ) {
+    const id = seg(1);
+    const b = (body ?? {}) as { isPublic?: boolean };
+    if (typeof b.isPublic !== "boolean") return badRequest("isPublic is required");
+    const cert = getDb().certificates.find((c) => c.id === id);
+    if (!cert) return notFound("Certificate not found");
+    cert.isPublic = b.isPublic;
+    return json(200, cert);
+  }
+
   if (segs[0] === "certificates" && segs.length === 2 && m === "GET") {
     const code = seg(1);
     const cert = getDb().certificates.find(
@@ -445,6 +540,22 @@ export async function dispatchMock(ctx: Ctx): Promise<Response | null> {
       (t) => t.token !== b.token,
     );
     return new Response(null, { status: 204 });
+  }
+
+  // ---- Donations: /donations/me ----
+  if (segs[0] === "donations" && segs[1] === "me" && m === "GET") {
+    const token = readToken(headers);
+    const userId = token === "mock-meron" ? "u-donor2" : null;
+    const statusFilter = typeof query.status === "string" ? query.status : undefined;
+    let items = getDb().donations.filter((d) => d.donorId === userId);
+    if (statusFilter) items = items.filter((d) => d.status === statusFilter);
+    const { page, limit } = readPage(query);
+    return json(200, paginate(items, page, limit));
+  }
+
+  // ---- Notifications: /notifications/me ----
+  if (segs[0] === "notifications" && segs[1] === "me" && m === "GET") {
+    return json(200, getDb().notifications);
   }
 
   return null;

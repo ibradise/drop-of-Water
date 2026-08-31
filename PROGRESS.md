@@ -180,3 +180,37 @@
 - `/me/campaigns` placeholder → Phase 5.
 - `/me/notifications` — list from `GET /notifications/me`, register/unregister FCM device tokens.
 - Cross-cutting: the donate form should suggest signing in (or require it) when the gift hits the manual-review threshold.
+
+---
+
+## Phase 4 — Account dashboard ✅ complete
+
+### Done
+- **In-process mock engine** now serves these new endpoints (in addition to the existing ones): `GET /donations/me`, `GET /certificates/me`, `POST /certificates/generate`, `PATCH /certificates/:id/visibility`, `GET /notifications/me`, `POST /notifications/device-tokens`, `DELETE /notifications/device-tokens`.
+- `donationsApi.mine()` now accepts a `status` filter.
+- Seed data: added 2 more donations for Meron (one completed, one pending via Zeffy) so the donations list has something to show.
+- **`/me/donations`** — paginated, status-filtered list of the signed-in user's donations. Each row shows status badge, high-value flag, donor name, campaign link (with title fetched on demand), date, payment method, and amount. Empty state links to `/campaigns`.
+- **`/me/certificates`** — list of the user's certificates with:
+  - Two "generate" cards (fundraising / volunteer time) with explanations of the tier thresholds.
+  - Each cert shows badge level, type, public/private badge, title, description, totals, issued date, version.
+  - One-click copy-to-clipboard share link, public/private toggle, "Open page" link to the public certificate.
+  - On success: invalidates `["certificates", "me"]` so the list refreshes.
+- **`/me/notifications`** — list of in-app notifications (read state shown with a colored dot + "new" badge). A "Push notifications" card lets you register / unregister a device token (any string works in dev; the real Firebase SDK will provide the real one in prod).
+- **`/certificates/[code]`** — public certificate view page. Reachable by anyone with the link; private certificates show "This certificate is private" to non-owners and a 404-style message to anonymous visitors. Shows badge, recipient, totals, related campaign links, and a copyable share code.
+- **`/me` sidebar** now links to Notifications alongside the existing entries.
+
+### Verified
+- `npx tsc --noEmit` — clean
+- `npm run lint` — 0 errors, 1 known false positive (RHF `watch()`)
+- `npm run build` — 17 routes including the new `/certificates/[code]`
+
+### Decisions made
+- The certificate generate endpoint in the mock uses the user's seeded `completed` donations to compute the badge level. This means Meron (who has 12,500 ETB in the seed) will land in the **silver** tier; a brand-new user will get a 400 ("below bronze tier"). The real backend computes per-campaign ratios, so this is a faithful approximation.
+- The donate form does **not** automatically route high-value gifts through a sign-in gate (yet). I left that for Phase 5 or later — current behavior is the same as Phase 2, with the 5,000 ETB banner on the form.
+- The `/certificates/[code]` page is server-route-agnostic: it works for both public and owner reads. Private certificates correctly 404 for anonymous visitors and show a polite "private" message for authenticated non-owners (the backend's `GET /certificates/:code` returns 404 in both cases — the frontend differentiates by checking the auth state).
+
+### Next: Phase 5 — campaign creator flow
+- `/me/campaigns` (currently a placeholder): list campaigns the user created or co-fundraised, with status filters.
+- `/me/campaigns/new`: create a new campaign against a fundable project (uses `POST /campaigns`).
+- `/me/campaigns/[id]/manage`: edit, submit-for-approval, see approval state, join-as-co-fundraiser button on joinable+active campaigns.
+- Wire the existing `/campaigns` filters to "My campaigns" too.

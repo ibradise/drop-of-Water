@@ -77,6 +77,11 @@ export default function MePage() {
               Run your own campaign
             </Button>
           </Link>
+          <Link href="/me/notifications">
+            <Button variant="outline" className="w-full justify-start">
+              Notifications and device tokens
+            </Button>
+          </Link>
         </CardContent>
       </Card>
 

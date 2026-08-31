@@ -41,7 +41,7 @@ export const donationsApi = {
       })
       .then((data) => paginatedDonation.parse(data) as Paginated<Donation>),
 
-  mine: (params?: PaginationParams) =>
+  mine: (params?: PaginationParams & { status?: string }) =>
     api
       .get<unknown>("/donations/me", { query: params as Record<string, unknown> | undefined })
       .then((data) => paginatedDonation.parse(data) as Paginated<Donation>),
