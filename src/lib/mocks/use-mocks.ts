@@ -2,30 +2,48 @@
 
 import { useEffect, useState } from "react";
 
-export function useMocks(): { ready: boolean; enabled: boolean } {
+type State = { ready: boolean; enabled: boolean; error: string | null };
+
+let startPromise: Promise<boolean> | null = null;
+
+export function useMocks(): State {
   const shouldMock = process.env.NEXT_PUBLIC_API_MOCK === "true";
-  const [state, setState] = useState<{ ready: boolean; enabled: boolean }>({
+  const [state, setState] = useState<State>({
     ready: !shouldMock,
     enabled: false,
+    error: null,
   });
 
   useEffect(() => {
     if (!shouldMock) return;
-    let cancelled = false;
-    (async () => {
+    if (startPromise) {
+      // Worker is already being started (or has started) in this tab.
+      startPromise.then((ok) =>
+        setState({ ready: true, enabled: ok, error: ok ? null : "MSW start failed" }),
+      );
+      return;
+    }
+    startPromise = (async () => {
       const mod = await import("@/lib/mocks/browser");
-      await mod.worker.start({
-        onUnhandledRequest: "bypass",
-        serviceWorker: { url: "/mockServiceWorker.js" },
-      });
-      if (!cancelled) setState({ ready: true, enabled: true });
-    })().catch((err) => {
-      console.error("Failed to start MSW", err);
-      if (!cancelled) setState({ ready: true, enabled: false });
-    });
-    return () => {
-      cancelled = true;
-    };
+      try {
+        await mod.worker.start({
+          onUnhandledRequest: "bypass",
+          serviceWorker: { url: "/mockServiceWorker.js" },
+          quiet: true,
+        });
+        return true;
+      } catch (err) {
+        console.error("Failed to start MSW", err);
+        return false;
+      }
+    })();
+    startPromise.then((ok) =>
+      setState({
+        ready: true,
+        enabled: ok,
+        error: ok ? null : "MSW failed to start (see console)",
+      }),
+    );
   }, [shouldMock]);
 
   return state;

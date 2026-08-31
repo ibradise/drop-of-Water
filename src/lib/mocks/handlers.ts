@@ -1,393 +1,69 @@
-import { http, HttpResponse, passthrough } from "msw";
-import { getDb } from "./db";
-import { makeId } from "./ids";
+import { http, passthrough } from "msw";
+import { dispatchMock } from "./routes";
 
-type Query = Record<string, string | string[] | undefined>;
-
-function paginate<T>(items: T[], page: number, limit: number) {
-  const total = items.length;
-  const totalPages = Math.max(1, Math.ceil(total / limit));
-  const start = (page - 1) * limit;
-  const data = items.slice(start, start + limit);
-  return {
-    data,
-    meta: { total, page, limit, totalPages, hasNextPage: page < totalPages, hasPrevPage: page > 1 },
-  };
-}
-
-function readToken(req: Request): string | null {
-  const h = req.headers.get("authorization");
-  if (!h) return null;
-  const m = /^Bearer\s+(.+)$/i.exec(h);
-  return m ? m[1] : null;
-}
-
-function readPage(query: Query): { page: number; limit: number } {
-  const page = Math.max(1, Number(query.page) || 1);
-  const rawLimit = Number(query.limit) || 10;
-  const limit = Math.min(100, Math.max(1, rawLimit));
-  return { page, limit };
-}
-
-function filterDeleted<T>(items: T[]): T[] {
-  return (items as Array<{ isDeleted?: boolean }>).filter((x) => !x.isDeleted) as T[];
-}
-
-export const handlers = [
-  http.all("/api/mock/*", ({ request }) => {
-    const url = new URL(request.url);
-    if (url.pathname === "/api/mock" || url.pathname === "/api/mock/") {
-      return HttpResponse.json({ ok: true, mock: true });
-    }
-    return passthrough();
-  }),
-
-  http.get("/api/mock/projects", ({ request }) => {
-    const db = getDb();
-    const q = Object.fromEntries(new URL(request.url).searchParams);
-    const status = typeof q.status === "string" ? q.status : undefined;
-    const { page, limit } = readPage(q);
-    let items = filterDeleted(db.projects);
-    if (status) items = items.filter((p) => p.status === status);
-    return HttpResponse.json(paginate(items, page, limit));
-  }),
-
-  http.get("/api/mock/projects/fundable", ({ request }) => {
-    const db = getDb();
-    const q = Object.fromEntries(new URL(request.url).searchParams);
-    const { page, limit } = readPage(q);
-    const items = filterDeleted(db.projects).filter((p) => p.status === "fundable");
-    return HttpResponse.json(paginate(items, page, limit));
-  }),
-
-  http.get("/api/mock/projects/:id", ({ params }) => {
-    const db = getDb();
-    const project = db.projects.find(
-      (p) => p._id === params.id && !(p as { isDeleted?: boolean }).isDeleted,
-    );
-    if (!project) {
-      return HttpResponse.json(
-        { statusCode: 404, message: "Project not found", error: "Not Found" },
-        { status: 404 },
-      );
-    }
-    return HttpResponse.json(project);
-  }),
-
-  http.get("/api/mock/campaigns", ({ request }) => {
-    const db = getDb();
-    const q = Object.fromEntries(new URL(request.url).searchParams);
-    const status = typeof q.status === "string" ? q.status : undefined;
-    const projectId = typeof q.projectId === "string" ? q.projectId : undefined;
-    const includeSponsorships = q.includeSponsorships === "true" || q.includeSponsorships === "1";
-    const { page, limit } = readPage(q);
-    let items = db.campaigns.filter((c) => c.status !== "draft");
-    if (status) items = items.filter((c) => c.status === status);
-    if (projectId) items = items.filter((c) => c.projectId === projectId);
-    if (includeSponsorships) {
-      items = items.map((c) => ({
-        ...c,
-        sponsorships: db.sponsorships.filter(
-          (s) => s.campaignId === c._id && s.isActive && !s.isDeleted,
-        ),
-      }));
-    }
-    return HttpResponse.json(paginate(items, page, limit));
-  }),
-
-  http.get("/api/mock/campaigns/active", ({ request }) => {
-    const db = getDb();
-    const q = Object.fromEntries(new URL(request.url).searchParams);
-    const includeSponsorships = q.includeSponsorships === "true" || q.includeSponsorships === "1";
-    const { page, limit } = readPage(q);
-    let items = db.campaigns.filter((c) => c.status === "active");
-    if (includeSponsorships) {
-      items = items.map((c) => ({
-        ...c,
-        sponsorships: db.sponsorships.filter(
-          (s) => s.campaignId === c._id && s.isActive && !s.isDeleted,
-        ),
-      }));
-    }
-    return HttpResponse.json(paginate(items, page, limit));
-  }),
-
-  http.get("/api/mock/campaigns/project/:projectId", ({ params, request }) => {
-    const db = getDb();
-    const q = Object.fromEntries(new URL(request.url).searchParams);
-    const { page, limit } = readPage(q);
-    const items = db.campaigns.filter(
-      (c) => c.projectId === params.projectId && c.status !== "draft",
-    );
-    return HttpResponse.json(paginate(items, page, limit));
-  }),
-
-  http.get("/api/mock/campaigns/:id", ({ params, request }) => {
-    const db = getDb();
-    const q = Object.fromEntries(new URL(request.url).searchParams);
-    const includeSponsorships = q.includeSponsorships === "true" || q.includeSponsorships === "1";
-    const c = db.campaigns.find((x) => x._id === params.id);
-    if (!c) {
-      return HttpResponse.json(
-        { statusCode: 404, message: "Campaign not found", error: "Not Found" },
-        { status: 404 },
-      );
-    }
-    if (includeSponsorships) {
-      return HttpResponse.json({
-        ...c,
-        sponsorships: db.sponsorships.filter(
-          (s) => s.campaignId === c._id && s.isActive && !s.isDeleted,
-        ),
-      });
-    }
-    return HttpResponse.json(c);
-  }),
-
-  http.get("/api/mock/campaigns/:campaignId/sponsorships", ({ params, request }) => {
-    const db = getDb();
-    const q = Object.fromEntries(new URL(request.url).searchParams);
-    const { page, limit } = readPage(q);
-    const items = db.sponsorships.filter(
-      (s) => s.campaignId === params.campaignId && s.isActive && !s.isDeleted,
-    );
-    return HttpResponse.json(paginate(items, page, limit));
-  }),
-
-  http.post("/api/mock/donations", async ({ request }) => {
-    const body = (await request.json()) as {
-      campaignId?: string;
-      amount: number;
-      paymentMethod: string;
-      message?: string;
-      isAnonymous?: boolean;
-      donor?: { name?: string; email?: string };
-    };
-    const db = getDb();
-    const txId = `dow-mock-${Date.now().toString(36)}`;
-    const isManualReview = body.amount >= 500_000;
-    const donation = {
-      _id: `mock-${Date.now()}`,
-      campaignId: body.campaignId ?? null,
-      donorId: null,
-      donorSnapshot: {
-        name: body.donor?.name ?? "Guest Giver",
-        email: body.donor?.email,
-      },
-      amount: body.amount,
-      currency: "ETB",
-      paymentMethod: body.paymentMethod,
-      transactionId: txId,
-      paidAt: null,
-      status: "pending" as const,
-      requiresManualReview: isManualReview,
-      message: body.message,
-      isAnonymous: body.isAnonymous ?? false,
-      createdBy: "guest",
-      updatedBy: null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    db.donations.push(donation as never);
-
-    if (body.paymentMethod !== "manual") {
-      setTimeout(() => {
-        const target = db.donations.find((d) => d.transactionId === txId);
-        if (!target) return;
-        if (target.status !== "pending") return;
-        target.paidAt = new Date().toISOString();
-        target.status = isManualReview ? "manual_review" : "completed";
-        target.updatedAt = new Date().toISOString();
-        if (isManualReview) return;
-        const campaign = db.campaigns.find((c) => c._id === target.campaignId);
-        if (campaign) {
-          campaign.currentAmount = (campaign.currentAmount ?? 0) + target.amount;
-          campaign.updatedAt = new Date().toISOString();
-        }
-        if (target.campaignId) {
-          const projectId = campaign?.projectId;
-          const project = db.projects.find((p) => p._id === projectId);
-          if (project) {
-            project.currentFunding = (project.currentFunding ?? 0) + target.amount;
-            project.updatedAt = new Date().toISOString();
-          }
-        }
-      }, 3_000);
-    }
-
-    return HttpResponse.json(
-      {
-        donation,
-        checkout: {
-          checkoutUrl: `/campaigns/${body.campaignId}/donate/return?tx_ref=${txId}&status=success&amount=${body.amount}&gateway=${body.paymentMethod}`,
-          transactionRef: txId,
-          gateway: body.paymentMethod,
-        },
-      },
-      { status: 201 },
-    );
-  }),
-
-  http.get("/api/mock/donations/campaign/:campaignId", ({ params, request }) => {
-    const db = getDb();
-    const q = Object.fromEntries(new URL(request.url).searchParams);
-    const { page, limit } = readPage(q);
-    const items = db.donations
-      .filter(
-        (d) =>
-          d.campaignId === params.campaignId && d.status === "completed" && !d.isAnonymous,
-      )
-      .map((d) => ({
-        ...d,
-        donorSnapshot: d.isAnonymous ? { name: "Anonymous" } : d.donorSnapshot,
-      }));
-    return HttpResponse.json(paginate(items, page, limit));
-  }),
-
-  http.get("/api/mock/impact-updates/project/:projectId", ({ params, request }) => {
-    const db = getDb();
-    const q = Object.fromEntries(new URL(request.url).searchParams);
-    const { page, limit } = readPage(q);
-    const items = db.impactUpdates.filter(
-      (i) => i.projectId === params.projectId && i.status === "published",
-    );
-    return HttpResponse.json(paginate(items, page, limit));
-  }),
-
-  http.get("/api/mock/impact-updates/campaign/:campaignId", ({ params, request }) => {
-    const db = getDb();
-    const q = Object.fromEntries(new URL(request.url).searchParams);
-    const { page, limit } = readPage(q);
-    const items = db.impactUpdates.filter(
-      (i) => i.campaignId === params.campaignId && i.status === "published",
-    );
-    return HttpResponse.json(paginate(items, page, limit));
-  }),
-
-  http.get("/api/mock/certificates/:code", ({ params, request }) => {
-    const db = getDb();
-    const cert = db.certificates.find((c) => c.certificateCode === params.code);
-    if (!cert) {
-      return HttpResponse.json(
-        { statusCode: 404, message: "Certificate not found", error: "Not Found" },
-        { status: 404 },
-      );
-    }
-    if (cert.isPublic) {
-      const { recipient, ...rest } = cert;
-      return HttpResponse.json({ ...rest, recipient: { name: recipient.name } });
-    }
-    const token = readToken(request);
-    if (!token) {
-      return HttpResponse.json(
-        { statusCode: 404, message: "Certificate not found", error: "Not Found" },
-        { status: 404 },
-      );
-    }
-    return HttpResponse.json(cert);
-  }),
-
-  http.get("/api/mock/users/me", ({ request }) => {
-    const db = getDb();
-    const token = readToken(request);
-    if (!token) {
-      return HttpResponse.json(
-        { statusCode: 401, message: "Missing Firebase token", error: "Unauthorized" },
-        { status: 401 },
-      );
-    }
-    // Demo tokens: "mock-meron" => seeded user; "mock-anon-<uid>" => most recently
-    // registered user with that firebaseUid. Falls through to 401 for anything else.
-    if (token === "mock-meron") {
-      const meron = db.users.find((u) => u.id === "u-donor2");
-      if (meron) return HttpResponse.json(meron);
-    }
-    if (token.startsWith("mock-anon")) {
-      const match = db.users.find((u) => u.firebaseUid === token);
-      if (match) return HttpResponse.json(match);
-      return HttpResponse.json(
-        { statusCode: 401, message: "No DoW account for this Firebase user", error: "Unauthorized" },
-        { status: 401 },
-      );
-    }
-    return HttpResponse.json(
-      { statusCode: 401, message: "No DoW account for this Firebase user", error: "Unauthorized" },
-      { status: 401 },
-    );
-  }),
-
-  http.post("/api/mock/users", async ({ request }) => {
-    const body = (await request.json()) as {
-      name: string;
-      phoneNumber?: string;
-      roles?: string[];
-      entityType?: string;
-      profile?: Record<string, unknown>;
-    };
-    const db = getDb();
-    const token = readToken(request);
-    if (!token) {
-      return HttpResponse.json(
-        { statusCode: 401, message: "Missing Firebase token", error: "Unauthorized" },
-        { status: 401 },
-      );
-    }
-    const user = {
-      _id: makeId(),
-      id: `u-${Date.now().toString(36)}`,
-      firebaseUid: token,
-      email: "demo@example.com",
-      name: body.name,
-      phoneNumber: body.phoneNumber,
-      roles: body.roles && body.roles.length > 0 ? body.roles : ["donor"],
-      entityType: body.entityType ?? null,
-      isVerified: false,
-      isActive: true,
-      profile: body.profile,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    db.users.push(user as never);
-    return HttpResponse.json(user, { status: 201 });
-  }),
-
-  http.patch("/api/mock/users/me", async ({ request }) => {
-    const db = getDb();
-    const body = (await request.json()) as Record<string, unknown>;
-    const token = readToken(request);
-    if (token !== "mock-meron") {
-      return HttpResponse.json(
-        { statusCode: 401, message: "Not signed in", error: "Unauthorized" },
-        { status: 401 },
-      );
-    }
-    const user = db.users.find((u) => u.id === "u-donor2");
-    if (!user) {
-      return HttpResponse.json(
-        { statusCode: 404, message: "User not found", error: "Not Found" },
-        { status: 404 },
-      );
-    }
-    Object.assign(user, body, { updatedAt: new Date().toISOString() });
-    return HttpResponse.json(user);
-  }),
-
-  http.post("/api/mock/notifications/device-tokens", async ({ request }) => {
-    const db = getDb();
-    const body = (await request.json()) as { token: string };
-    const authToken = readToken(request);
-    db.deviceTokens.push({
-      token: body.token,
-      userId: authToken === "mock-meron" ? "u-donor2" : "guest",
-      createdAt: new Date().toISOString(),
-    });
-    return new HttpResponse(null, { status: 204 });
-  }),
-
-  http.delete("/api/mock/notifications/device-tokens", async ({ request }) => {
-    const db = getDb();
-    const body = (await request.json()) as { token: string };
-    db.deviceTokens = db.deviceTokens.filter((t) => t.token !== body.token);
-    return new HttpResponse(null, { status: 204 });
-  }),
+// List of route patterns. The MSW worker uses these for service-worker
+// interception (fallback if the in-process mock is not available).
+const ROUTES: string[] = [
+  "GET /users/me",
+  "POST /users",
+  "PATCH /users/me",
+  "GET /projects",
+  "GET /projects/fundable",
+  "GET /projects/:id",
+  "GET /campaigns",
+  "GET /campaigns/active",
+  "GET /campaigns/project/:projectId",
+  "GET /campaigns/:id",
+  "GET /campaigns/:campaignId/sponsorships",
+  "POST /donations",
+  "GET /donations/campaign/:campaignId",
+  "GET /impact-updates/project/:projectId",
+  "GET /impact-updates/campaign/:campaignId",
+  "GET /certificates/:code",
+  "POST /notifications/device-tokens",
+  "DELETE /notifications/device-tokens",
 ];
+
+export const handlers = ROUTES.map((route) => {
+  const [method, pattern] = route.split(" ");
+  return http[method.toLowerCase() as "get" | "post" | "patch" | "delete"](
+    pattern,
+    async ({ request, params }) => {
+      const url = new URL(request.url);
+      const query: Record<string, string> = {};
+      url.searchParams.forEach((v, k) => {
+        query[k] = v;
+      });
+      const headers: Record<string, string> = {};
+      request.headers.forEach((v, k) => {
+        headers[k] = v;
+      });
+      let body: unknown = undefined;
+      if (method !== "GET" && method !== "DELETE") {
+        try {
+          body = await request.clone().json();
+        } catch {
+          /* no body */
+        }
+      }
+      // Reconstruct the matched path from the pattern + params.
+      const path = pattern
+        .split("/")
+        .map((seg) => {
+          if (seg.startsWith(":")) return params[seg.slice(1)] ?? "";
+          return seg;
+        })
+        .join("/");
+      const res = await dispatchMock({
+        method,
+        path: "/" + path,
+        params: params as Record<string, string>,
+        query,
+        body,
+        headers,
+      });
+      if (!res) return passthrough();
+      return res;
+    },
+  );
+});

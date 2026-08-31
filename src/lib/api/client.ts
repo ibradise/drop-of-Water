@@ -42,7 +42,6 @@ export function setTokenProvider(provider: TokenProvider | null): void {
 }
 
 const DEFAULT_BASE_URL = "http://localhost:3000";
-const MOCK_BASE_URL = "/api/mock";
 
 function getBaseUrl(): string {
   const envUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -55,7 +54,7 @@ function isMockMode(): boolean {
 }
 
 function buildUrl(path: string, query?: Record<string, unknown>): string {
-  const base = isMockMode() ? MOCK_BASE_URL : getBaseUrl();
+  const base = getBaseUrl();
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
   const url = `${base}${cleanPath}`;
   if (!query) return url;
@@ -87,6 +86,13 @@ export async function apiFetch<T = unknown>(
   const { body, query, skipAuth, headers, ...rest } = options;
   const url = buildUrl(path, query);
 
+  // In mock mode we run the handler in-process. This bypasses fetch + MSW
+  // entirely, so it works without a service worker registration and survives
+  // any stale-worker state.
+  if (isMockMode()) {
+    return runInProcessMockRequest<T>(path, url, options);
+  }
+
   const finalHeaders: Record<string, string> = {
     Accept: "application/json",
     ...(headers as Record<string, string> | undefined),
@@ -106,7 +112,6 @@ export async function apiFetch<T = unknown>(
     body: body !== undefined ? JSON.stringify(body) : undefined,
     cache: rest.cache ?? "no-store",
   });
-
   const text = await res.text();
   let payload: unknown = undefined;
   if (text.length > 0) {
@@ -129,6 +134,45 @@ export async function apiFetch<T = unknown>(
   }
 
   return payload as T;
+}
+
+async function runInProcessMockRequest<T>(
+  path: string,
+  url: string,
+  options: ApiFetchOptions,
+): Promise<T> {
+  const { body, skipAuth, headers } = options;
+  const finalHeaders: Record<string, string> = {
+    Accept: "application/json",
+    ...(headers as Record<string, string> | undefined),
+  };
+  if (body !== undefined) finalHeaders["Content-Type"] = "application/json";
+  if (!skipAuth && tokenProvider) {
+    const token = await tokenProvider();
+    if (token) finalHeaders.Authorization = `Bearer ${token}`;
+  }
+  // Dynamic import keeps MSW out of the initial server bundle.
+  const { runInProcessMock } = await import("@/lib/mocks/browser");
+  const result = await runInProcessMock(options.method ?? "GET", url, {
+    body,
+    headers: finalHeaders,
+  });
+  if (!result) {
+    throw new ApiError(404, `No mock handler for ${options.method ?? "GET"} ${path}`, null);
+  }
+  if (result.status < 200 || result.status >= 300) {
+    const payload = result.body;
+    const message =
+      (payload &&
+        typeof payload === "object" &&
+        "message" in payload &&
+        (payload as { message: unknown }).message) ||
+      "Mock request failed";
+    throw new ApiError(result.status, message as string | string[], payload);
+  }
+  // The handler may return 204 with no body; return undefined for that case.
+  if (result.status === 204) return undefined as T;
+  return result.body as T;
 }
 
 export const api = {

@@ -35,13 +35,14 @@ export default function RootLayout({
     >
       <body className="min-h-full bg-slate-50 text-slate-900">
         <QueryProvider>
-          <MockBoot />
           <AuthProvider>
-            <SiteHeader />
-            <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-              {children}
-            </main>
-            <Toaster richColors position="top-right" />
+            <MockBoot>
+              <SiteHeader />
+              <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+                {children}
+              </main>
+              <Toaster richColors position="top-right" />
+            </MockBoot>
           </AuthProvider>
         </QueryProvider>
       </body>
