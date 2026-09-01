@@ -15,7 +15,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Sea
   const initialStatus = (PROJECT_STATUSES as readonly string[]).includes(raw ?? "")
     ? (raw as ProjectStatus)
     : null;
-
+    
   return (
     <div className="flex flex-col gap-8">
       <header className="flex flex-col gap-2">

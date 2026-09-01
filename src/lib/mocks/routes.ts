@@ -270,6 +270,157 @@ export async function dispatchMock(ctx: Ctx): Promise<Response | null> {
     return json(200, paginate(items, page, limit));
   }
 
+  // POST /campaigns — create
+  if (path === "/campaigns" && m === "POST") {
+    const b = (body ?? {}) as {
+      projectId?: string;
+      title?: string;
+      summary?: string;
+      story?: string;
+      goalAmount?: number;
+      currency?: string;
+      dropsGoal?: number;
+      startDate?: string;
+      endDate?: string;
+      joinable?: boolean;
+      photos?: string[];
+    };
+    if (!b.projectId) return badRequest("projectId is required");
+    if (!b.title) return badRequest("title is required");
+    if (typeof b.goalAmount !== "number" || b.goalAmount < 0)
+      return badRequest("goalAmount must be a non-negative integer (smallest unit)");
+    const project = getDb().projects.find((p) => p._id === b.projectId);
+    if (!project) return badRequest("projectId references a missing project");
+    if (project.status !== "fundable")
+      return badRequest("Project is not in 'fundable' status");
+
+    const token = readToken(headers);
+    const userId = token === "mock-meron" ? "u-donor2" : "u-anon";
+
+    const campaign = {
+      _id: makeId(),
+      projectId: b.projectId,
+      title: b.title,
+      summary: b.summary,
+      story: b.story,
+      goalAmount: b.goalAmount,
+      currentAmount: 0,
+      currency: b.currency ?? "ETB",
+      dropsGoal: b.dropsGoal,
+      startDate: b.startDate,
+      endDate: b.endDate,
+      status: "draft" as const,
+      joinable: b.joinable ?? false,
+      participants: [
+        { _id: makeId(), userId, role: "creator", joinedAt: new Date().toISOString() },
+      ],
+      photos: b.photos ?? [],
+      createdBy: userId,
+      approvedBy: undefined,
+      updatedBy: userId,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    getDb().campaigns.push(campaign as never);
+    return json(201, campaign);
+  }
+
+  // POST /campaigns/:id/submit
+  if (segs[0] === "campaigns" && segs[1] && segs[2] === "submit" && m === "POST") {
+    const id = seg(1);
+    const c = getDb().campaigns.find((x) => x._id === id);
+    if (!c) return notFound("Campaign not found");
+    if (c.status !== "draft")
+      return badRequest(`Cannot submit from status '${c.status}'`);
+    c.status = "pending_approval";
+    c.updatedAt = new Date().toISOString();
+    return json(200, c);
+  }
+
+  // POST /campaigns/:id/approve
+  if (
+    segs[0] === "campaigns" &&
+    segs[1] &&
+    segs[2] === "approve" &&
+    m === "POST"
+  ) {
+    const id = seg(1);
+    const b = (body ?? {}) as { contentManagerId?: string };
+    const c = getDb().campaigns.find((x) => x._id === id);
+    if (!c) return notFound("Campaign not found");
+    if (c.status !== "pending_approval")
+      return badRequest(`Cannot approve from status '${c.status}'`);
+    const token = readToken(headers);
+    if (token !== "mock-meron") return unauthorized("Manager role required");
+    c.status = "active";
+    c.approvedBy = b.contentManagerId ?? "u-manager";
+    c.contentManagerId = b.contentManagerId ?? "u-manager";
+    c.updatedAt = new Date().toISOString();
+    return json(200, c);
+  }
+
+  // POST /campaigns/:id/reject
+  if (segs[0] === "campaigns" && segs[1] && segs[2] === "reject" && m === "POST") {
+    const id = seg(1);
+    const c = getDb().campaigns.find((x) => x._id === id);
+    if (!c) return notFound("Campaign not found");
+    if (c.status !== "pending_approval")
+      return badRequest(`Cannot reject from status '${c.status}'`);
+    c.status = "draft";
+    c.updatedAt = new Date().toISOString();
+    return json(200, c);
+  }
+
+  // POST /campaigns/:id/join
+  if (segs[0] === "campaigns" && segs[1] && segs[2] === "join" && m === "POST") {
+    const id = seg(1);
+    const role = typeof query.role === "string" ? query.role : "fundraiser";
+    const c = getDb().campaigns.find((x) => x._id === id);
+    if (!c) return notFound("Campaign not found");
+    if (c.status !== "active" || !c.joinable)
+      return badRequest("Campaign is not joinable");
+    const token = readToken(headers);
+    const userId = token === "mock-meron" ? "u-donor2" : "u-anon";
+    if (c.createdBy === userId) return badRequest("You already own this campaign");
+    if (c.participants.some((p) => p.userId === userId))
+      return badRequest("You already joined this campaign");
+    c.participants.push({
+      _id: makeId(),
+      userId,
+      role,
+      joinedAt: new Date().toISOString(),
+    });
+    c.updatedAt = new Date().toISOString();
+    return json(200, c);
+  }
+
+  // PATCH /campaigns/:id — edit
+  if (segs[0] === "campaigns" && segs.length === 2 && m === "PATCH") {
+    const id = seg(1);
+    const c = getDb().campaigns.find((x) => x._id === id);
+    if (!c) return notFound("Campaign not found");
+    const token = readToken(headers);
+    const userId = token === "mock-meron" ? "u-donor2" : "u-anon";
+    if (c.createdBy !== userId) return unauthorized("Not the campaign owner");
+    const b = (body ?? {}) as Record<string, unknown>;
+    if ("projectId" in b) return badRequest("projectId is immutable");
+    Object.assign(c, b, { updatedBy: userId, updatedAt: new Date().toISOString() });
+    return json(200, c);
+  }
+
+  // DELETE /campaigns/:id — soft delete
+  if (segs[0] === "campaigns" && segs.length === 2 && m === "DELETE") {
+    const id = seg(1);
+    const c = getDb().campaigns.find((x) => x._id === id);
+    if (!c) return notFound("Campaign not found");
+    const token = readToken(headers);
+    const userId = token === "mock-meron" ? "u-donor2" : "u-anon";
+    if (c.createdBy !== userId) return unauthorized("Not the campaign owner");
+    (c as { isDeleted?: boolean }).isDeleted = true;
+    c.updatedAt = new Date().toISOString();
+    return json(200, c);
+  }
+
   // ---- Donations ----
   if (path === "/donations" && m === "POST") {
     const b = (body ?? {}) as {

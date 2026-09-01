@@ -477,6 +477,53 @@ function buildDb(): Db {
     },
   ];
 
+  // A draft campaign owned by Meron (so /me/campaigns has something to show).
+  campaigns.push({
+    _id: makeId(),
+    projectId: project3Id,
+    title: "Help us dig a well in Debre Berhan",
+    summary: "Student-led campaign to fund a hand-dug well for a community of 2,000.",
+    story:
+      "We're a group of high-school seniors in Debre Berhan. Our school sits on a hill overlooking a community that still gets its water from an open pond. With your help, we can fund a proper hand-dug well with a concrete liner and pulley.",
+    goalAmount: 150_000_00,
+    currentAmount: 0,
+    currency: "ETB",
+    dropsGoal: 300,
+    startDate: t0,
+    endDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+    status: "draft",
+    joinable: true,
+    participants: [
+      { _id: makeId(), userId: "u-donor2", role: "creator", joinedAt: t0 },
+    ],
+    photos: [],
+    createdBy: "u-donor2",
+    updatedBy: "u-donor2",
+    createdAt: t0,
+    updatedAt: t0,
+  } as never);
+
+  // A pending-approval campaign for Meron.
+  campaigns.push({
+    _id: makeId(),
+    projectId: project2Id,
+    title: "Class of 2025 for Wenchi springs",
+    summary: "Final-year students sponsoring the spring protection project.",
+    goalAmount: 80_000_00,
+    currentAmount: 0,
+    currency: "ETB",
+    status: "pending_approval",
+    joinable: false,
+    participants: [
+      { _id: makeId(), userId: "u-donor2", role: "creator", joinedAt: t0 },
+    ],
+    photos: [],
+    createdBy: "u-donor2",
+    updatedBy: "u-donor2",
+    createdAt: t0,
+    updatedAt: t0,
+  } as never);
+
   return {
     users: [
       {

@@ -209,8 +209,36 @@
 - The donate form does **not** automatically route high-value gifts through a sign-in gate (yet). I left that for Phase 5 or later — current behavior is the same as Phase 2, with the 5,000 ETB banner on the form.
 - The `/certificates/[code]` page is server-route-agnostic: it works for both public and owner reads. Private certificates correctly 404 for anonymous visitors and show a polite "private" message for authenticated non-owners (the backend's `GET /certificates/:code` returns 404 in both cases — the frontend differentiates by checking the auth state).
 
-### Next: Phase 5 — campaign creator flow
-- `/me/campaigns` (currently a placeholder): list campaigns the user created or co-fundraised, with status filters.
-- `/me/campaigns/new`: create a new campaign against a fundable project (uses `POST /campaigns`).
-- `/me/campaigns/[id]/manage`: edit, submit-for-approval, see approval state, join-as-co-fundraiser button on joinable+active campaigns.
-- Wire the existing `/campaigns` filters to "My campaigns" too.
+### Next: Phase 6 — staff dashboards (admin summary, review queues, project + content management)
+
+---
+
+## Phase 5 — Campaign creator flow ✅ complete
+
+### Done
+- **In-process mock engine** now serves the campaign lifecycle: `POST /campaigns`, `PATCH /campaigns/:id`, `DELETE /campaigns/:id`, `POST /campaigns/:id/submit`, `POST /campaigns/:id/approve`, `POST /campaigns/:id/reject`, `POST /campaigns/:id/join`. Auth: campaign creators see their own campaigns; the approve/reject handlers require a manager token; the join handler enforces the `joinable + active` rule.
+- **Seed data**: 1 draft and 1 pending-approval campaign owned by Meron, so `/me/campaigns` has data to show.
+- **`/me/campaigns`** — paginated list of the user's created or co-fundraised campaigns. Status filter chips. "New campaign" CTA is only visible if the user has a creator role (`campaign_creator` / `chapter_leader` / `content_contributor` / `content_manager` / `digital_coordinator` / `program_director` / `system_admin`).
+- **`/me/campaigns/new`** — full create form. Project picker shows only `fundable` projects; selecting one reveals the project budget progress bar. Goal in whole ETB (converted to smallest-unit on submit). Date range validation. "Joinable" toggle. Live creator-roles gate shows a "Creator role required" card for users without the right role.
+- **`/me/campaigns/[id]/manage`** — one page for everything: hero with status + role badges, funding progress, **Submit for approval** panel (only when status is `draft`), **Join as co-fundraiser** panel (only when active + joinable + not already a participant), **Edit campaign** collapsible form, **Participants** list, **Delete** panel (only for the owner while in draft/pending). All mutations invalidate the right query keys.
+- Auth handling: needs-onboarding users are sent to `/onboarding`; unauthenticated users to `/sign-in?next=…`.
+
+### Verified
+- `npx tsc --noEmit` — clean
+- `npm run lint` — 0 errors, 2 known false positives (RHF `watch()` × 2)
+- `npm run build` — 20 routes including `/me/campaigns`, `/me/campaigns/new`, `/me/campaigns/[id]/manage`
+
+### Decisions made
+- The real backend doesn't currently expose a `?createdBy=me` filter on `GET /campaigns`, so `/me/campaigns` pulls a page of 100 and filters client-side. This is fine for a demo with a small dataset; we'll add a server-side filter when the backend supports it.
+- `approve` requires the same `mock-meron` token in the mock — a real backend would gate this on a manager role server-side.
+- The "join" handler refuses if the user already owns the campaign or is already a participant, matching the backend spec.
+- The "manage" page is intentionally generous in what it shows (status, role, joinable, etc.) — it's the campaign's home once it's created, not just an edit screen.
+
+### Next: Phase 6 — staff dashboards
+- `/admin` dashboard summary (donation totals, project counts, pending review counts).
+- `/admin/review-queue` — combined `manual_review` donations + `submitted` impact updates.
+- `/admin/donations` — list with finance filters (status, payment method, high-value, min-amount).
+- `/admin/donations/:id/review` — finance decision form.
+- `/admin/impact-updates/pending` — list with approve/reject actions.
+- Project management screen (add milestones, cost items, photos, proofs).
+- All gated by `program_director` / `finance_admin` / `system_admin`.
