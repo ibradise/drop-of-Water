@@ -169,6 +169,150 @@ export async function dispatchMock(ctx: Ctx): Promise<Response | null> {
     return json(200, project);
   }
 
+  // POST /projects/:id/milestones
+  if (
+    segs[0] === "projects" &&
+    segs[1] &&
+    segs[2] === "milestones" &&
+    m === "POST"
+  ) {
+    const id = seg(1);
+    const project = getDb().projects.find(
+      (p) => p._id === id && !(p as { isDeleted?: boolean }).isDeleted,
+    );
+    if (!project) return notFound("Project not found");
+    const payload = (body ?? {}) as
+      | { title?: string; description?: string }
+      | Array<{ title?: string; description?: string }>
+      | { items: Array<{ title?: string; description?: string }> };
+    const items = Array.isArray(payload) ? payload : "items" in payload ? payload.items : [payload];
+    for (const it of items) {
+      if (!it.title) return badRequest("title is required for each milestone");
+      project.milestones.push({
+        _id: makeId(),
+        title: it.title,
+        description: it.description,
+        status: "pending",
+        completedAt: null,
+        verifiedBy: null,
+      });
+    }
+    project.updatedAt = new Date().toISOString();
+    return json(200, project);
+  }
+
+  // DELETE /projects/:id/milestones/:milestoneId
+  if (
+    segs[0] === "projects" &&
+    segs[1] &&
+    segs[2] === "milestones" &&
+    segs[3] &&
+    m === "DELETE"
+  ) {
+    const id = seg(1);
+    const milestoneId = seg(3);
+    const project = getDb().projects.find(
+      (p) => p._id === id && !(p as { isDeleted?: boolean }).isDeleted,
+    );
+    if (!project) return notFound("Project not found");
+    project.milestones = project.milestones.filter(
+      (m) => m._id !== milestoneId,
+    ) as typeof project.milestones;
+    project.updatedAt = new Date().toISOString();
+    return json(200, project);
+  }
+
+  // POST /projects/:id/cost-items
+  if (
+    segs[0] === "projects" &&
+    segs[1] &&
+    segs[2] === "cost-items" &&
+    m === "POST"
+  ) {
+    const id = seg(1);
+    const project = getDb().projects.find(
+      (p) => p._id === id && !(p as { isDeleted?: boolean }).isDeleted,
+    );
+    if (!project) return notFound("Project not found");
+    const payload = (body ?? {}) as
+      | { item?: string; amount?: number }
+      | Array<{ item?: string; amount?: number }>
+      | { items: Array<{ item?: string; amount?: number }> };
+    const items = Array.isArray(payload) ? payload : "items" in payload ? payload.items : [payload];
+    for (const it of items) {
+      if (!it.item) return badRequest("item is required for each cost item");
+      if (typeof it.amount !== "number" || it.amount < 0)
+        return badRequest("amount must be a non-negative integer (smallest unit)");
+      project.costBreakdown.push({
+        _id: makeId(),
+        item: it.item,
+        amount: it.amount,
+      });
+    }
+    project.updatedAt = new Date().toISOString();
+    return json(200, project);
+  }
+
+  // POST /projects/:id/photos
+  if (
+    segs[0] === "projects" &&
+    segs[1] &&
+    segs[2] === "photos" &&
+    m === "POST"
+  ) {
+    const id = seg(1);
+    const project = getDb().projects.find(
+      (p) => p._id === id && !(p as { isDeleted?: boolean }).isDeleted,
+    );
+    if (!project) return notFound("Project not found");
+    const payload = body as string[] | { items?: string[] } | undefined;
+    let urls: string[] = [];
+    if (Array.isArray(payload)) {
+      urls = payload.filter((u): u is string => typeof u === "string");
+    } else if (payload && Array.isArray((payload as { items?: string[] }).items)) {
+      urls = (payload as { items: string[] }).items;
+    } else if (typeof payload === "string") {
+      urls = [payload];
+    }
+    for (const url of urls) {
+      project.photos.push(url);
+    }
+    project.updatedAt = new Date().toISOString();
+    return json(200, project);
+  }
+
+  // POST /projects/:id/proofs
+  if (
+    segs[0] === "projects" &&
+    segs[1] &&
+    segs[2] === "proofs" &&
+    m === "POST"
+  ) {
+    const id = seg(1);
+    const project = getDb().projects.find(
+      (p) => p._id === id && !(p as { isDeleted?: boolean }).isDeleted,
+    );
+    if (!project) return notFound("Project not found");
+    const payload = (body ?? {}) as
+      | { type?: string; url?: string }
+      | Array<{ type?: string; url?: string }>
+      | { items: Array<{ type?: string; url?: string }> };
+    const items = Array.isArray(payload) ? payload : "items" in payload ? payload.items : [payload];
+    for (const it of items) {
+      if (!it.type) return badRequest("type is required for each proof");
+      if (!it.url) return badRequest("url is required for each proof");
+      project.proofOfImpact.push({
+        _id: makeId(),
+        type: it.type,
+        url: it.url,
+        uploadedBy: readToken(headers) ?? "admin",
+        date: new Date().toISOString(),
+      });
+    }
+    project.updatedAt = new Date().toISOString();
+    return json(200, project);
+  }
+
   // ---- Campaigns ----
   if (path === "/campaigns" && m === "GET") {
     const status = typeof query.status === "string" ? query.status : undefined;
@@ -707,6 +851,232 @@ export async function dispatchMock(ctx: Ctx): Promise<Response | null> {
   // ---- Notifications: /notifications/me ----
   if (segs[0] === "notifications" && segs[1] === "me" && m === "GET") {
     return json(200, getDb().notifications);
+  }
+
+  // ---- Admin ----
+  if (!readToken(headers)) return unauthorized("Missing Firebase token");
+
+  // GET /admin/dashboard/summary
+  if (segs[0] === "admin" && segs[1] === "dashboard" && segs[2] === "summary" && m === "GET") {
+    const db = getDb();
+    const byStatus = <T,>(items: T[], key: (t: T) => string): Record<string, number> => {
+      const out: Record<string, number> = {};
+      for (const it of items) {
+        const k = key(it);
+        out[k] = (out[k] ?? 0) + 1;
+      }
+      return out;
+    };
+    const projects = db.projects.filter((p) => !(p as { isDeleted?: boolean }).isDeleted);
+    const campaigns = db.campaigns;
+    const donations = db.donations;
+    const impactUpdates = db.impactUpdates;
+    const users = db.users;
+
+    const totalGoalAmount = campaigns.reduce((sum, c) => sum + c.goalAmount, 0);
+    const totalRaisedAmount = campaigns.reduce((sum, c) => sum + c.currentAmount, 0);
+    const totalRaisedDonations = donations
+      .filter((d) => d.status === "completed")
+      .reduce((sum, d) => sum + d.amount, 0);
+    const totalDrops = donations
+      .filter((d) => d.status === "completed")
+      .reduce((sum, d) => sum + (d.drops ?? 0), 0);
+    const totalRefunded = donations
+      .filter((d) => d.status === "refunded")
+      .reduce((sum, d) => sum + d.amount, 0);
+    const completedCount = donations.filter((d) => d.status === "completed").length;
+    const avgDonation = completedCount > 0 ? Math.round(totalRaisedDonations / completedCount) : 0;
+    const totalBudget = projects.reduce((sum, p) => sum + p.budget, 0);
+    const totalFunding = projects.reduce((sum, p) => sum + p.currentFunding, 0);
+    const estimatedPeople = projects.reduce((sum, p) => sum + (p.estimatedPeopleServed ?? 0), 0);
+    const beneficiaries = projects.reduce((sum, p) => sum + (p.beneficiaryCount ?? 0), 0);
+
+    return json(200, {
+      projects: {
+        total: projects.length,
+        byStatus: byStatus(projects, (p) => p.status),
+        totalBudget,
+        totalFunding,
+        estimatedPeopleServed: estimatedPeople,
+        beneficiaries,
+      },
+      campaigns: {
+        total: campaigns.length,
+        byStatus: byStatus(campaigns, (c) => c.status),
+        pendingApproval: campaigns.filter((c) => c.status === "pending_approval").length,
+        active: campaigns.filter((c) => c.status === "active").length,
+        totalGoalAmount,
+        totalRaisedAmount,
+        goalCompletionPercent:
+          totalGoalAmount > 0 ? Math.round((totalRaisedAmount / totalGoalAmount) * 1000) / 10 : 0,
+      },
+      donations: {
+        total: donations.length,
+        byStatus: byStatus(donations, (d) => d.status),
+        pendingManualReview: donations.filter((d) => d.status === "manual_review").length,
+        completedCount,
+        totalRaised: totalRaisedDonations,
+        totalDrops,
+        averageDonation: avgDonation,
+        totalRefunded,
+      },
+      impactUpdates: {
+        total: impactUpdates.length,
+        byStatus: byStatus(impactUpdates, (u) => u.status),
+        pendingApproval: impactUpdates.filter((u) => u.status === "submitted").length,
+        published: impactUpdates.filter((u) => u.status === "published").length,
+      },
+      users: {
+        total: users.length,
+        active: users.filter((u) => u.isActive).length,
+      },
+      generatedAt: new Date().toISOString(),
+    });
+  }
+
+  // GET /admin/review-queue
+  if (segs[0] === "admin" && segs[1] === "review-queue" && m === "GET") {
+    const db = getDb();
+    const { page, limit } = readPage(query);
+    const donations = db.donations
+      .filter((d) => d.status === "manual_review")
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    const updates = db.impactUpdates
+      .filter((u) => u.status === "submitted")
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    return json(200, {
+      donations: paginate(donations, page, limit),
+      impactUpdates: paginate(updates, page, limit),
+    });
+  }
+
+  // GET /admin/projects, /admin/campaigns, /admin/donations, /admin/impact-updates/pending
+  if (segs[0] === "admin" && segs[1] === "donations" && segs.length === 2 && m === "GET") {
+    const db = getDb();
+    let items = db.donations.slice();
+    const status = typeof query.status === "string" ? query.status : undefined;
+    const paymentMethod =
+      typeof query.paymentMethod === "string" ? query.paymentMethod : undefined;
+    const campaignId = typeof query.campaignId === "string" ? query.campaignId : undefined;
+    const projectId = typeof query.projectId === "string" ? query.projectId : undefined;
+    const highValue = query.highValue === "true" || query.highValue === "1";
+    const minAmount = query.minAmount ? Number(query.minAmount) : undefined;
+    if (status) items = items.filter((d) => d.status === status);
+    if (paymentMethod) items = items.filter((d) => d.paymentMethod === paymentMethod);
+    if (campaignId) items = items.filter((d) => d.campaignId === campaignId);
+    if (projectId) items = items.filter((d) => d.projectId === projectId);
+    if (highValue) items = items.filter((d) => d.requiresManualReview);
+    if (typeof minAmount === "number" && !Number.isNaN(minAmount)) {
+      items = items.filter((d) => d.amount >= minAmount);
+    }
+    const { page, limit } = readPage(query);
+    return json(200, paginate(items, page, limit));
+  }
+
+  if (segs[0] === "admin" && segs[1] === "projects" && segs.length === 2 && m === "GET") {
+    const status = typeof query.status === "string" ? query.status : undefined;
+    let items = getDb().projects.filter((p) => !(p as { isDeleted?: boolean }).isDeleted);
+    if (status) items = items.filter((p) => p.status === status);
+    const { page, limit } = readPage(query);
+    return json(200, paginate(items, page, limit));
+  }
+
+  if (segs[0] === "admin" && segs[1] === "campaigns" && segs.length === 2 && m === "GET") {
+    const status = typeof query.status === "string" ? query.status : undefined;
+    const projectId = typeof query.projectId === "string" ? query.projectId : undefined;
+    let items = getDb().campaigns.slice();
+    if (status) items = items.filter((c) => c.status === status);
+    if (projectId) items = items.filter((c) => c.projectId === projectId);
+    const { page, limit } = readPage(query);
+    return json(200, paginate(items, page, limit));
+  }
+
+  if (
+    segs[0] === "admin" &&
+    segs[1] === "impact-updates" &&
+    segs[2] === "pending" &&
+    m === "GET"
+  ) {
+    let items = getDb().impactUpdates.filter((u) => u.status === "submitted");
+    items = items.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    const { page, limit } = readPage(query);
+    return json(200, paginate(items, page, limit));
+  }
+
+  // PATCH /admin/donations/:id/review
+  if (
+    segs[0] === "admin" &&
+    segs[1] === "donations" &&
+    segs[2] &&
+    segs[3] === "review" &&
+    m === "PATCH"
+  ) {
+    const id = seg(2);
+    const b = (body ?? {}) as { approve?: boolean; note?: string };
+    if (typeof b.approve !== "boolean") return badRequest("approve is required");
+    const d = getDb().donations.find((x) => x._id === id);
+    if (!d) return notFound("Donation not found");
+    if (d.status !== "manual_review") return badRequest("Donation is not pending review");
+    const isCaptured = d.paidAt !== null;
+    if (b.approve) {
+      d.status = isCaptured ? "completed" : "pending";
+    } else {
+      d.status = isCaptured ? "refunded" : "failed";
+    }
+    d.updatedAt = new Date().toISOString();
+    if (d.status === "completed") {
+      const campaign = getDb().campaigns.find((c) => c._id === d.campaignId);
+      if (campaign) {
+        campaign.currentAmount = (campaign.currentAmount ?? 0) + d.amount;
+        campaign.updatedAt = new Date().toISOString();
+      }
+      if (d.campaignId) {
+        const project = getDb().projects.find((p) => p._id === campaign?.projectId);
+        if (project) {
+          project.currentFunding = (project.currentFunding ?? 0) + d.amount;
+          project.updatedAt = new Date().toISOString();
+        }
+      }
+    }
+    return json(200, d);
+  }
+
+  // PATCH /admin/impact-updates/:id/approve
+  if (
+    segs[0] === "admin" &&
+    segs[1] === "impact-updates" &&
+    segs[2] &&
+    segs[3] === "approve" &&
+    m === "PATCH"
+  ) {
+    const id = seg(2);
+    const b = (body ?? {}) as { publishedAt?: string };
+    const u = getDb().impactUpdates.find((x) => x._id === id);
+    if (!u) return notFound("Impact update not found");
+    if (u.status !== "submitted") return badRequest("Update is not pending approval");
+    u.status = "published";
+    u.publishedAt = b.publishedAt ?? new Date().toISOString();
+    u.updatedAt = new Date().toISOString();
+    return json(200, u);
+  }
+
+  // PATCH /admin/impact-updates/:id/reject
+  if (
+    segs[0] === "admin" &&
+    segs[1] === "impact-updates" &&
+    segs[2] &&
+    segs[3] === "reject" &&
+    m === "PATCH"
+  ) {
+    const id = seg(2);
+    const b = (body ?? {}) as { reason?: string };
+    const u = getDb().impactUpdates.find((x) => x._id === id);
+    if (!u) return notFound("Impact update not found");
+    if (u.status !== "submitted") return badRequest("Update is not pending approval");
+    u.status = "rejected";
+    u.rejectionReason = b.reason ?? null;
+    u.updatedAt = new Date().toISOString();
+    return json(200, u);
   }
 
   return null;

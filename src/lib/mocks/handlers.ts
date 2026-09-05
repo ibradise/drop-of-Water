@@ -22,6 +22,11 @@ const ROUTES: string[] = [
   "POST /campaigns/:id/reject",
   "POST /campaigns/:id/join",
   "GET /campaigns/:campaignId/sponsorships",
+  "POST /projects/:id/milestones",
+  "DELETE /projects/:id/milestones/:milestoneId",
+  "POST /projects/:id/cost-items",
+  "POST /projects/:id/photos",
+  "POST /projects/:id/proofs",
   "POST /donations",
   "GET /donations/me",
   "GET /donations/campaign/:campaignId",
@@ -34,6 +39,15 @@ const ROUTES: string[] = [
   "GET /notifications/me",
   "POST /notifications/device-tokens",
   "DELETE /notifications/device-tokens",
+  "GET /admin/dashboard/summary",
+  "GET /admin/review-queue",
+  "GET /admin/projects",
+  "GET /admin/campaigns",
+  "GET /admin/donations",
+  "PATCH /admin/donations/:id/review",
+  "GET /admin/impact-updates/pending",
+  "PATCH /admin/impact-updates/:id/approve",
+  "PATCH /admin/impact-updates/:id/reject",
 ];
 
 export const handlers = ROUTES.map((route) => {

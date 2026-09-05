@@ -102,4 +102,19 @@ export const adminApi = {
         query: params as Record<string, unknown> | undefined,
       })
       .then((data) => paginatedImpactUpdate.parse(data) as { data: ImpactUpdate[]; meta: { total: number; page: number; limit: number; totalPages: number; hasNextPage: boolean; hasPrevPage: boolean } }),
+
+  reviewDonation: (id: string, body: { approve: boolean; note?: string }) =>
+    api
+      .patch<unknown>(`/admin/donations/${id}/review`, body)
+      .then((data) => donationSchema.parse(data) as Donation),
+
+  approveImpactUpdate: (id: string, body: { publishedAt?: string } = {}) =>
+    api
+      .patch<unknown>(`/admin/impact-updates/${id}/approve`, body)
+      .then((data) => impactUpdateSchema.parse(data) as ImpactUpdate),
+
+  rejectImpactUpdate: (id: string, body: { reason?: string } = {}) =>
+    api
+      .patch<unknown>(`/admin/impact-updates/${id}/reject`, body)
+      .then((data) => impactUpdateSchema.parse(data) as ImpactUpdate),
 };

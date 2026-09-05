@@ -66,6 +66,11 @@ const ROUTE_PATTERNS: string[] = [
   "/campaigns/:id/reject",
   "/campaigns/:id/join",
   "/campaigns/:campaignId/sponsorships",
+  "/projects/:id/milestones",
+  "/projects/:id/milestones/:milestoneId",
+  "/projects/:id/cost-items",
+  "/projects/:id/photos",
+  "/projects/:id/proofs",
   "/donations",
   "/donations/campaign/:campaignId",
   "/donations/me",
@@ -80,6 +85,15 @@ const ROUTE_PATTERNS: string[] = [
   "/certificates/:code",
   "/notifications/me",
   "/notifications/device-tokens",
+  "/admin/dashboard/summary",
+  "/admin/review-queue",
+  "/admin/projects",
+  "/admin/campaigns",
+  "/admin/donations",
+  "/admin/donations/:id/review",
+  "/admin/impact-updates/pending",
+  "/admin/impact-updates/:id/approve",
+  "/admin/impact-updates/:id/reject",
 ];
 
 function candidatePatterns(path: string): string[] {

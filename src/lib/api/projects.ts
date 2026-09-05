@@ -8,6 +8,7 @@ import {
   type CreateProjectInput,
   type UpdateProjectInput,
   type Milestone,
+  type MilestoneInput,
   type CostItem,
   type ProofOfImpact,
 } from "@/lib/schemas/project";
@@ -43,7 +44,7 @@ export const projectsApi = {
 
   remove: (id: string) => api.delete<unknown>(`/projects/${id}`),
 
-  addMilestones: (id: string, body: Milestone | Milestone[] | { items: Milestone[] }) =>
+  addMilestones: (id: string, body: MilestoneInput | MilestoneInput[] | { items: MilestoneInput[] }) =>
     api.post<Project>(`/projects/${id}/milestones`, body).then((p) => projectSchema.parse(p)),
 
   updateMilestone: (id: string, milestoneId: string, body: Partial<Milestone>) =>

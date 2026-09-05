@@ -17,6 +17,7 @@ export const milestoneSchema = z.object({
   verifiedBy: z.string().nullable().optional(),
 });
 export type Milestone = z.infer<typeof milestoneSchema>;
+export type MilestoneInput = Omit<Milestone, "status"> & { status?: string };
 
 export const proofOfImpactSchema = z.object({
   _id: z.string().optional(),
