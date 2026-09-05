@@ -27,10 +27,6 @@ export function DonateReturn({ campaignId }: { campaignId: string }) {
   const initialStatus = statusFromParams(search.get("status"));
   const isManual = initialStatus === "manual_review";
 
-  // We have no public GET /donations/:id in the spec, so we simulate a poll
-  // by re-querying the public donor list for this campaign. Once we add a
-  // public GET /donations/by-transaction/:txRef, this can become a single
-  // targeted query.
   const [settled] = useState<Status>(initialStatus);
   const [pollCount, setPollCount] = useState(0);
 
@@ -54,9 +50,9 @@ export function DonateReturn({ campaignId }: { campaignId: string }) {
     <div className="mx-auto flex max-w-xl flex-col gap-6">
       <Link
         href={`/campaigns/${campaignId}`}
-        className="text-sm text-slate-500 hover:text-slate-700"
+        className="inline-flex items-center gap-1 text-sm text-slate-500 transition-colors hover:text-slate-900"
       >
-        ← Back to campaign
+        <span aria-hidden>←</span> Back to campaign
       </Link>
 
       <ReturnPanel status={settled} amount={search.get("amount")} txRef={txRef} />
@@ -68,23 +64,24 @@ export function DonateReturn({ campaignId }: { campaignId: string }) {
         <CardContent className="text-sm text-slate-700">
           {settled === "completed" ? (
             <p>
-              Your gift has been confirmed by the payment gateway. It now counts toward the
-              campaign total and will appear in your donor history.
+              Your gift has been confirmed by the payment gateway. It now counts
+              toward the campaign total and will appear in your donor history.
             </p>
           ) : settled === "manual_review" ? (
             <p>
-              Your payment has been captured. Our finance team will review the gift and confirm
-              it shortly. You will be notified when the review is complete.
+              Your payment has been captured. Our finance team will review the
+              gift and confirm it shortly. You will be notified when the review
+              is complete.
             </p>
           ) : settled === "failed" ? (
             <p>
-              The gateway reported the payment as failed. No funds were captured. You can try
-              again or pick a different payment method.
+              The gateway reported the payment as failed. No funds were
+              captured. You can try again or pick a different payment method.
             </p>
           ) : (
             <p>
-              We are waiting for the payment gateway to confirm your gift. This usually takes a
-              few seconds. Please don&rsquo;t close this tab.
+              We are waiting for the payment gateway to confirm your gift. This
+              usually takes a few seconds. Please don&rsquo;t close this tab.
             </p>
           )}
         </CardContent>
@@ -151,15 +148,14 @@ function ReturnPanel({
       body={
         amount ? (
           <span>
-            We&rsquo;re confirming your gift of <Money cents={Math.round(Number(amount) * 100)} currency="ETB" />.
+            We&rsquo;re confirming your gift of{" "}
+            <Money cents={Math.round(Number(amount) * 100)} currency="ETB" />.
           </span>
         ) : (
           <span>Waiting for the gateway to settle the payment.</span>
         )
       }
-      extra={
-        <p className="text-xs text-slate-500">Reference: {txRef || "—"}</p>
-      }
+      extra={<p className="text-xs text-slate-500">Reference: {txRef || "—"}</p>}
     />
   );
 }

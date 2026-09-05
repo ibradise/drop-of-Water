@@ -1,20 +1,19 @@
-import { CalendarDays, MapPin } from "lucide-react";
+import { CalendarDays, MapPin, Sparkles, Users } from "lucide-react";
 import type { Campaign } from "@/lib/schemas/campaign";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Money } from "@/components/ui/money";
 import { CampaignStatusBadge } from "@/components/ui/status-badges";
 import { ProgressBar } from "@/components/progress-bar";
 import { Button } from "@/components/ui/button";
-import { useNow } from "@/lib/use-now";
 import Link from "next/link";
 
 export function CampaignHero({ campaign }: { campaign: Campaign }) {
   const end = campaign.endDate ? new Date(campaign.endDate) : null;
-  const now = useNow();
-  const daysLeft = end ? Math.max(0, Math.ceil((end.getTime() - now) / 86_400_000)) : null;
+  const now = new Date();
+  const daysLeft = end ? Math.max(0, Math.ceil((end.getTime() - now.getTime()) / 86_400_000)) : null;
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[3fr_2fr]">
-      <div className="overflow-hidden rounded-2xl bg-slate-100">
+    <div className="grid grid-cols-1 gap-8 lg:grid-cols-[3fr_2fr]">
+      <div className="overflow-hidden rounded-2xl bg-slate-100 ring-1 ring-slate-200/60">
         {campaign.photos[0] ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -23,20 +22,20 @@ export function CampaignHero({ campaign }: { campaign: Campaign }) {
             className="aspect-[16/9] w-full object-cover"
           />
         ) : (
-          <div className="aspect-[16/9] w-full bg-gradient-to-br from-emerald-100 to-sky-200" />
+          <div className="aspect-[16/9] w-full bg-gradient-to-br from-emerald-200 via-sky-100 to-cyan-100" />
         )}
       </div>
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-5">
+        <div className="flex flex-wrap items-center gap-2">
           <CampaignStatusBadge status={campaign.status} />
-          {daysLeft != null ? (
-            <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+          {daysLeft != null && campaign.status === "active" ? (
+            <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-0.5 text-xs text-slate-700">
               <CalendarDays className="h-3 w-3" />
               {daysLeft} day{daysLeft === 1 ? "" : "s"} left
             </span>
           ) : null}
         </div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+        <h1 className="text-balance text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
           {campaign.title}
         </h1>
         {campaign.summary ? (
@@ -45,7 +44,7 @@ export function CampaignHero({ campaign }: { campaign: Campaign }) {
         <div className="flex flex-col gap-2">
           <div className="flex items-baseline justify-between text-sm">
             <span className="font-semibold text-slate-900">
-              <Money cents={campaign.currentAmount} currency={campaign.currency} />
+              <Money cents={campaign.currentAmount} currency={campaign.currency} emphasis="lg" />
             </span>
             <span className="text-xs text-slate-500">
               of <Money cents={campaign.goalAmount} currency={campaign.currency} />
@@ -59,6 +58,7 @@ export function CampaignHero({ campaign }: { campaign: Campaign }) {
         <div className="flex flex-col gap-2 pt-1">
           <Link href={`/campaigns/${campaign._id}/donate`}>
             <Button size="lg" className="w-full">
+              <Sparkles className="h-4 w-4" />
               Donate to this campaign
             </Button>
           </Link>
@@ -78,7 +78,9 @@ export function CampaignStory({ campaign }: { campaign: Campaign }) {
   if (!campaign.story) return null;
   return (
     <section>
-      <h2 className="mb-3 text-xl font-semibold text-slate-900">The story</h2>
+      <h2 className="mb-3 text-xl font-semibold tracking-tight text-slate-900">
+        The story
+      </h2>
       <Card>
         <CardContent className="prose prose-slate max-w-none whitespace-pre-line text-slate-700">
           {campaign.story}
@@ -104,36 +106,42 @@ export function CampaignSponsors({
   if (sponsors.length === 0) return null;
   return (
     <section>
-      <h2 className="mb-3 text-xl font-semibold text-slate-900">Sponsors</h2>
+      <h2 className="mb-3 text-xl font-semibold tracking-tight text-slate-900">
+        Sponsors
+      </h2>
       <div className="grid gap-3 sm:grid-cols-2">
         {sponsors.map((s) => (
           <Card key={s._id}>
-            <CardHeader>
+            <CardContent className="flex flex-col gap-2 p-5">
               <div className="flex items-center gap-3">
                 {s.logoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={s.logoUrl}
                     alt={s.corporateName}
-                    className="h-10 w-auto rounded bg-white object-contain p-1"
+                    className="h-10 w-auto rounded bg-white object-contain p-1 ring-1 ring-slate-200"
                   />
                 ) : (
                   <div className="h-10 w-10 rounded bg-slate-100" />
                 )}
                 <div className="min-w-0">
-                  <CardTitle className="truncate text-base">{s.corporateName}</CardTitle>
-                  <CardDescription className="capitalize">
+                  <h3 className="truncate text-base font-semibold text-slate-900">
+                    {s.corporateName}
+                  </h3>
+                  <p className="text-xs capitalize text-slate-500">
                     {s.type.replace(/_/g, " ")}
-                  </CardDescription>
+                  </p>
                 </div>
               </div>
-            </CardHeader>
-            {s.message ? <CardContent className="pt-0 text-sm text-slate-600">{s.message}</CardContent> : null}
-            {s.amount != null ? (
-              <CardContent className="border-t border-slate-100 pt-3">
-                <Money cents={s.amount} currency={s.currency} />
-              </CardContent>
-            ) : null}
+              {s.message ? (
+                <p className="text-sm text-slate-600">{s.message}</p>
+              ) : null}
+              {s.amount != null ? (
+                <div className="border-t border-slate-100 pt-2 text-sm font-semibold text-sky-700">
+                  <Money cents={s.amount} currency={s.currency} />
+                </div>
+              ) : null}
+            </CardContent>
           </Card>
         ))}
       </div>
@@ -159,7 +167,9 @@ export function CampaignDonors({
   if (donations.length === 0) {
     return (
       <section>
-        <h2 className="mb-3 text-xl font-semibold text-slate-900">Recent donors</h2>
+        <h2 className="mb-3 text-xl font-semibold tracking-tight text-slate-900">
+          Recent donors
+        </h2>
         <p className="text-sm text-slate-500">No donations yet. Be the first to give.</p>
       </section>
     );
@@ -167,7 +177,9 @@ export function CampaignDonors({
   return (
     <section>
       <div className="mb-3 flex items-baseline justify-between">
-        <h2 className="text-xl font-semibold text-slate-900">Recent donors</h2>
+        <h2 className="text-xl font-semibold tracking-tight text-slate-900">
+          Recent donors
+        </h2>
         <span className="text-xs text-slate-500">
           Showing {donations.length} of {totalCount}
         </span>
@@ -199,5 +211,29 @@ export function CampaignDonors({
         </p>
       ) : null}
     </section>
+  );
+}
+
+export function CampaignParticipants({ participants }: { participants: Campaign["participants"] }) {
+  if (participants.length === 0) return null;
+  return (
+    <Card>
+      <CardContent className="flex flex-col gap-3 p-5">
+        <div className="flex items-center gap-2 text-sm text-slate-700">
+          <Users className="h-4 w-4" />
+          {participants.length} fundraiser{participants.length === 1 ? "" : "s"} on this campaign
+        </div>
+        <ul className="flex flex-wrap gap-2">
+          {participants.map((p) => (
+            <li
+              key={p._id}
+              className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs capitalize text-slate-700"
+            >
+              {p.role.replace(/_/g, " ")}
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
   );
 }

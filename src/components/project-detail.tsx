@@ -68,14 +68,17 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
   if (!project) return null;
 
   return (
-    <div className="flex flex-col gap-8">
-      <Link href="/projects" className="text-sm text-slate-500 hover:text-slate-700">
-        ← All projects
+    <div className="flex flex-col gap-10">
+      <Link
+        href="/projects"
+        className="inline-flex items-center gap-1 text-sm text-slate-500 transition-colors hover:text-slate-900"
+      >
+        <span aria-hidden>←</span> All projects
       </Link>
 
       {project.photos.length > 0 ? (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[3fr_2fr]">
-          <div className="overflow-hidden rounded-2xl bg-slate-100">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[3fr_2fr]">
+          <div className="overflow-hidden rounded-2xl bg-slate-100 ring-1 ring-slate-200/60">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={project.photos[photoIndex]}
@@ -89,8 +92,8 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
                     key={url}
                     type="button"
                     onClick={() => setPhotoIndex(i)}
-                    className={`h-2 flex-1 rounded-full transition-colors ${
-                      i === photoIndex ? "bg-sky-500" : "bg-slate-200 hover:bg-slate-300"
+                    className={`h-1.5 flex-1 rounded-full transition-colors ${
+                      i === photoIndex ? "bg-slate-900" : "bg-slate-200 hover:bg-slate-300"
                     }`}
                     aria-label={`Show photo ${i + 1}`}
                   />
@@ -98,31 +101,38 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
               </div>
             ) : null}
           </div>
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-5">
+            <div className="flex flex-wrap items-center gap-2">
               <ProjectStatusBadge status={project.status} />
               {project.location ? (
-                <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+                <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-0.5 text-xs text-slate-600">
                   <MapPin className="h-3 w-3" />
                   {project.gpsCoordinates ??
                     `${project.location.lat.toFixed(2)}° N, ${project.location.lng.toFixed(2)}° E`}
                 </span>
               ) : null}
             </div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+            <h1 className="text-balance text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
               {project.title}
             </h1>
             {project.shortDescription ? (
               <p className="text-lg text-slate-600">{project.shortDescription}</p>
             ) : null}
-            <div className="grid grid-cols-2 gap-3 pt-2 text-sm">
+            <div className="grid grid-cols-2 gap-3 pt-1">
               <Stat
                 label="Budget"
                 value={<Money cents={project.budget} currency={project.currency} />}
               />
               <Stat
                 label="Funded"
-                value={<Money cents={project.currentFunding} currency={project.currency} />}
+                value={
+                  <Money
+                    cents={project.currentFunding}
+                    currency={project.currency}
+                    emphasis="lg"
+                  />
+                }
+                accent
               />
               {project.beneficiaryCount != null ? (
                 <Stat
@@ -141,11 +151,15 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
             </div>
             <div>
               <div className="mb-1.5 flex items-baseline justify-between text-sm">
-                <span className="font-medium text-slate-700">
+                <span className="font-semibold text-slate-900">
                   {project.budget > 0
                     ? Math.round((project.currentFunding / project.budget) * 100)
                     : 0}
                   % funded
+                </span>
+                <span className="text-xs text-slate-500">
+                  <Money cents={project.currentFunding} currency={project.currency} /> of{" "}
+                  <Money cents={project.budget} currency={project.currency} />
                 </span>
               </div>
               <ProgressBar value={project.currentFunding} max={project.budget} />
@@ -163,14 +177,18 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
 
       {project.fullDescription ? (
         <section className="prose prose-slate max-w-none">
-          <h2 className="text-xl font-semibold text-slate-900">About this project</h2>
+          <h2 className="text-xl font-semibold tracking-tight text-slate-900">
+            About this project
+          </h2>
           <p className="whitespace-pre-line text-slate-700">{project.fullDescription}</p>
         </section>
       ) : null}
 
       {project.costBreakdown.length > 0 ? (
         <section>
-          <h2 className="mb-3 text-xl font-semibold text-slate-900">Cost breakdown</h2>
+          <h2 className="mb-3 text-xl font-semibold tracking-tight text-slate-900">
+            Cost breakdown
+          </h2>
           <Card>
             <ul className="divide-y divide-slate-100">
               {project.costBreakdown.map((c) => (
@@ -189,7 +207,9 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
 
       {project.milestones.length > 0 ? (
         <section>
-          <h2 className="mb-3 text-xl font-semibold text-slate-900">Milestones</h2>
+          <h2 className="mb-3 text-xl font-semibold tracking-tight text-slate-900">
+            Milestones
+          </h2>
           <ol className="relative space-y-4 border-l-2 border-slate-200 pl-6">
             {project.milestones.map((m) => (
               <li key={m._id ?? m.title} className="relative">
@@ -322,15 +342,25 @@ function Stat({
   label,
   value,
   icon,
+  accent,
 }: {
   label: string;
   value: React.ReactNode;
   icon?: React.ReactNode;
+  accent?: boolean;
 }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
-      <div className="text-xs uppercase tracking-wide text-slate-500">{label}</div>
-      <div className="mt-0.5 flex items-center gap-1.5 text-sm font-semibold text-slate-900">
+    <div
+      className={`rounded-xl border bg-white px-3 py-2.5 ${
+        accent
+          ? "border-sky-200 bg-sky-50/40"
+          : "border-slate-200"
+      }`}
+    >
+      <div className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+        {label}
+      </div>
+      <div className="mt-1 flex items-center gap-1.5 text-sm font-semibold text-slate-900">
         {icon}
         {value}
       </div>

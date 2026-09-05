@@ -7,6 +7,7 @@ import { z } from "zod";
 import Link from "next/link";
 import { Suspense, useState } from "react";
 import { toast } from "sonner";
+import { ArrowRight, Lock, Mail, Sparkles } from "lucide-react";
 import { useAuth } from "@/lib/auth/context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -79,50 +80,61 @@ function SignInInner() {
 
   return (
     <div className="mx-auto flex max-w-md flex-col gap-6">
-      <header className="flex flex-col gap-1">
+      <header className="flex flex-col gap-2 text-center">
+        <span className="text-xs font-semibold uppercase tracking-wide text-sky-700">
+          Welcome back
+        </span>
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">Sign in</h1>
         <p className="text-slate-600">Welcome back. Sign in to manage your giving.</p>
       </header>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Use your email</CardTitle>
-          <CardDescription>Sign in with the email you used to register.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={onSubmit} className="flex flex-col gap-3">
+        <CardContent className="p-6">
+          <form onSubmit={onSubmit} className="flex flex-col gap-4">
             <div>
               <label htmlFor="email" className="mb-1 block text-sm font-medium text-slate-700">
                 Email
               </label>
-              <input
-                id="email"
-                type="email"
-                autoComplete="email"
-                {...register("email")}
-                className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-              />
+              <div className="relative">
+                <Mail className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                <input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                  {...register("email")}
+                  className="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+                />
+              </div>
               {errors.email ? (
                 <p className="mt-1 text-xs text-rose-600">{errors.email.message}</p>
               ) : null}
             </div>
             <div>
-              <label htmlFor="password" className="mb-1 block text-sm font-medium text-slate-700">
+              <label
+                htmlFor="password"
+                className="mb-1 block text-sm font-medium text-slate-700"
+              >
                 Password
               </label>
-              <input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                {...register("password")}
-                className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-              />
+              <div className="relative">
+                <Lock className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                <input
+                  id="password"
+                  type="password"
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                  {...register("password")}
+                  className="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+                />
+              </div>
               {errors.password ? (
                 <p className="mt-1 text-xs text-rose-600">{errors.password.message}</p>
               ) : null}
             </div>
-            <Button type="submit" isLoading={submitting === "email"}>
+            <Button type="submit" size="lg" isLoading={submitting === "email"}>
               Sign in
+              <ArrowRight className="h-4 w-4" />
             </Button>
           </form>
         </CardContent>
@@ -145,11 +157,15 @@ function SignInInner() {
       </Button>
 
       {isMockMode ? (
-        <Card className="border-dashed bg-sky-50/40">
+        <Card className="border-dashed bg-gradient-to-br from-sky-50/60 to-cyan-50/40">
           <CardHeader>
-            <CardTitle className="text-base">Demo mode</CardTitle>
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-sky-600" />
+              <CardTitle className="text-base">Demo mode</CardTitle>
+            </div>
             <CardDescription>
-              Backend is mocked. Use one of these demo identities instead of Firebase.
+              Backend is mocked. Use one of these demo identities instead of
+              Firebase.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-2">
@@ -174,7 +190,7 @@ function SignInInner() {
       ) : null}
 
       <p className="text-center text-sm text-slate-600">
-        Don&rsquo;t have an account?{" "}
+        Don&apos;t have an account?{" "}
         <Link href="/sign-up" className="font-medium text-sky-700 hover:text-sky-800">
           Create one
         </Link>

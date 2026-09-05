@@ -18,6 +18,7 @@ import {
   CampaignStory,
   CampaignSponsors,
   CampaignDonors,
+  CampaignParticipants,
 } from "@/components/campaign-detail-sections";
 import { useRouter } from "next/navigation";
 
@@ -129,6 +130,8 @@ export function CampaignDetail({ campaignId }: { campaignId: string }) {
           </Card>
         </section>
       ) : null}
+
+      <CampaignParticipants participants={campaign.participants} />
 
       <CampaignSponsors sponsors={sponsors} />
 

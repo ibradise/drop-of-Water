@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { ArrowRight, Users, Droplets, FileText, TrendingUp } from "lucide-react";
+import { ArrowRight, Droplets, FileText, Heart, TrendingUp, Users } from "lucide-react";
 import { adminApi } from "@/lib/api/admin";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, EmptyState } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +15,7 @@ export default function AdminDashboardPage() {
   });
 
   if (summaryQ.isLoading) {
-    return <div className="h-64 animate-pulse rounded-xl bg-slate-100" />;
+    return <div className="h-64 animate-pulse rounded-2xl bg-slate-100" />;
   }
   if (summaryQ.isError) {
     return <EmptyState title="Couldn't load the dashboard" />;
@@ -44,7 +44,7 @@ export default function AdminDashboardPage() {
         <SummaryCard
           icon={<TrendingUp className="h-4 w-4" />}
           label="Total raised"
-          value={<Money cents={s.donations.totalRaised} currency="ETB" />}
+          value={<Money cents={s.donations.totalRaised} currency="ETB" emphasis="lg" />}
           link="/admin/donations"
           linkLabel="Donations"
         />
@@ -182,7 +182,7 @@ function SummaryCard({
   return (
     <Card>
       <CardContent className="flex flex-col gap-2">
-        <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-slate-500">
+        <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-slate-500">
           {icon}
           {label}
         </div>
@@ -234,9 +234,7 @@ function BreakdownCard({
           {icon}
           <CardTitle className="text-base">{title}</CardTitle>
         </div>
-        <CardDescription>
-          {total} total
-        </CardDescription>
+        <CardDescription>{total} total</CardDescription>
       </CardHeader>
       <CardContent>
         {rows.length === 0 ? (

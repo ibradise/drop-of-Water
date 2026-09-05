@@ -17,12 +17,17 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Se
     : null;
 
   return (
-    <div className="flex flex-col gap-8">
-      <header className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Campaigns</h1>
+    <div className="flex flex-col gap-10">
+      <header className="flex flex-col gap-3">
+        <span className="text-xs font-semibold uppercase tracking-wide text-sky-700">
+          Fundraisers
+        </span>
+        <h1 className="text-balance text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+          Active campaigns raising real money for real wells.
+        </h1>
         <p className="max-w-2xl text-slate-600">
-          Active fundraisers by students, chapters, volunteers, and corporate partners. Pick one
-          to read the story, see sponsors, and donate.
+          Active fundraisers by students, chapters, volunteers, and corporate
+          partners. Pick one to read the story, see sponsors, and donate.
         </p>
       </header>
       <CampaignsList initialStatus={initialStatus} />

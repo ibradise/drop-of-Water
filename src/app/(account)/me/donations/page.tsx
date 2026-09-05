@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import Link from "next/link";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, Heart, Search } from "lucide-react";
 import { donationsApi } from "@/lib/api/donations";
 import { campaignsApi } from "@/lib/api/campaigns";
 import { DONATION_STATUSES, type DonationStatus } from "@/lib/enums";
@@ -23,27 +23,28 @@ export default function MeDonationsPage() {
 
   const items = donationsQ.data?.data ?? [];
 
-  // Resolve campaign titles for the list (best-effort; one query per id).
-  const campaignIds = Array.from(
-    new Set(items.map((d) => d.campaignId).filter((id): id is string => !!id)),
-  );
-
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-1">
-        <h2 className="text-xl font-semibold text-slate-900">My donations</h2>
+        <h2 className="text-xl font-semibold tracking-tight text-slate-900">
+          My donations
+        </h2>
         <p className="text-sm text-slate-500">
-          Your gift history. High-value gifts (≥ 5,000 ETB) are reviewed by our finance
-          team after capture.
+          Your gift history. High-value gifts (≥ 5,000 ETB) are reviewed by our
+          finance team after capture.
         </p>
       </header>
 
-      <div className="flex flex-wrap items-center gap-1.5">
+      <div className="flex flex-wrap items-center gap-1.5 rounded-full border border-slate-200 bg-white p-1 shadow-sm">
         <FilterChip active={status === null} onClick={() => setStatus(null)}>
           All
         </FilterChip>
         {DONATION_STATUSES.map((s) => (
-          <FilterChip key={s} active={status === s} onClick={() => setStatus(s)}>
+          <FilterChip
+            key={s}
+            active={status === s}
+            onClick={() => setStatus(s)}
+          >
             {s.replace(/_/g, " ")}
           </FilterChip>
         ))}
@@ -51,6 +52,7 @@ export default function MeDonationsPage() {
 
       {donationsQ.isError ? (
         <EmptyState
+          icon={<Heart className="h-8 w-8" />}
           title="Couldn't load your donations"
           description={
             donationsQ.error instanceof ApiError && donationsQ.error.isUnauthorized
@@ -71,6 +73,7 @@ export default function MeDonationsPage() {
         </div>
       ) : items.length === 0 ? (
         <EmptyState
+          icon={<Search className="h-8 w-8" />}
           title="No donations yet"
           description="Find a campaign you care about and make your first gift."
           action={
@@ -91,7 +94,9 @@ export default function MeDonationsPage() {
                   <div className="flex items-center gap-2">
                     <DonationStatusBadge status={d.status} />
                     {d.requiresManualReview ? (
-                      <span className="text-xs text-amber-700">high-value</span>
+                      <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-200">
+                        high-value
+                      </span>
                     ) : null}
                   </div>
                   <div className="text-sm font-medium text-slate-900">
@@ -120,10 +125,6 @@ export default function MeDonationsPage() {
           </ul>
         </Card>
       )}
-
-      {/* Resolve the campaignIds placeholder to keep the array referenced so it
-          doesn't get tree-shaken — we'll use it in a future iteration. */}
-      <span className="hidden">{campaignIds.length}</span>
     </div>
   );
 }
@@ -157,10 +158,10 @@ function FilterChip({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full border px-3 py-1 text-xs font-medium capitalize transition-colors ${
+      className={`rounded-full px-3 py-1 text-xs font-medium capitalize transition-colors ${
         active
-          ? "border-sky-500 bg-sky-500 text-white"
-          : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+          ? "bg-slate-900 text-white shadow-sm"
+          : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
       }`}
     >
       {children}

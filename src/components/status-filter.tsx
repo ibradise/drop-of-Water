@@ -14,7 +14,13 @@ export function StatusFilter<T extends string>({
   allLabel?: string;
 }) {
   return (
-    <div className={cn("flex flex-wrap items-center gap-1.5", className)}>
+    <div
+      className={cn(
+        "flex flex-wrap items-center gap-1.5 rounded-full border border-slate-200 bg-white p-1 shadow-sm",
+        className,
+      )}
+      role="tablist"
+    >
       <FilterChip active={value === null} onClick={() => onChange(null)}>
         {allLabel}
       </FilterChip>
@@ -41,10 +47,10 @@ function FilterChip({
       type="button"
       onClick={onClick}
       className={cn(
-        "rounded-full border px-3 py-1 text-xs font-medium capitalize transition-colors",
+        "rounded-full px-3 py-1 text-xs font-medium capitalize transition-colors",
         active
-          ? "border-sky-500 bg-sky-500 text-white"
-          : "border-slate-200 bg-white text-slate-700 hover:border-slate-300",
+          ? "bg-slate-900 text-white shadow-sm"
+          : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
       )}
     >
       {children}

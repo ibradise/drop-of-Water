@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use } from "react";
-import { Award, Lock, Share2 } from "lucide-react";
+import { Award, CheckCircle2, ExternalLink, Lock, ShieldCheck, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { certificatesApi } from "@/lib/api/certificates";
 import { ApiError } from "@/lib/api/client";
@@ -82,6 +82,7 @@ export default function PublicCertificatePage({
   const cert = certQ.data;
   if (!cert) return null;
   const issued = new Date(cert.issuedAt).toLocaleDateString();
+  const isFunding = cert.type === "fundraising";
 
   const copy = async () => {
     try {
@@ -94,73 +95,87 @@ export default function PublicCertificatePage({
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
-      <header className="flex flex-col items-center gap-2 text-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-amber-600">
-          <Award className="h-6 w-6" />
+      <div className="overflow-hidden rounded-3xl border border-amber-200/60 bg-gradient-to-br from-amber-50 via-white to-sky-50 p-8 text-center shadow-sm sm:p-10">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg shadow-amber-500/30">
+          <Award className="h-7 w-7" />
         </div>
-        <Badge tone={BADGE_TONE[cert.badgeLevel]} className="capitalize">
-          {cert.badgeLevel} tier
-        </Badge>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+        <div className="mt-4 flex items-center justify-center gap-2">
+          <Badge tone={BADGE_TONE[cert.badgeLevel]} className="capitalize">
+            {cert.badgeLevel} tier
+          </Badge>
+          <Badge tone="brand" className="capitalize">
+            {isFunding ? "Fundraising" : "Volunteer time"}
+          </Badge>
+        </div>
+        <h1 className="mt-4 text-balance text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
           {cert.title}
         </h1>
-        <p className="text-sm text-slate-600">{cert.description}</p>
-      </header>
+        <p className="mt-3 text-slate-700">{cert.description}</p>
+      </div>
 
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Certificate details</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Row label="Recipient" value={cert.recipient.name} />
-          <Row label="Type" value={cert.type === "fundraising" ? "Fundraising" : "Volunteer time"} />
+          <Row
+            label="Type"
+            value={isFunding ? "Fundraising" : "Volunteer time"}
+          />
           <Row label="Issued" value={issued} />
           <Row label="Version" value={`v${cert.version}`} />
-          {cert.type === "fundraising" && cert.totalAmount > 0 ? (
+          {isFunding && cert.totalAmount > 0 ? (
             <Row
               label="Total raised"
-              value={<Money cents={cert.totalAmount} currency={cert.currency ?? "ETB"} />}
+              value={
+                <Money cents={cert.totalAmount} currency={cert.currency ?? "ETB"} />
+              }
             />
           ) : null}
-          {cert.type === "volunteer_time" && cert.totalHours > 0 ? (
+          {!isFunding && cert.totalHours > 0 ? (
             <Row label="Hours" value={cert.totalHours.toString()} />
           ) : null}
           {cert.relatedCampaignIds.length > 0 ? (
-            <Row
-              label="Campaigns"
-              value={
-                <span className="flex flex-wrap gap-1">
-                  {cert.relatedCampaignIds.map((cid) => (
-                    <Link
-                      key={cid}
-                      href={`/campaigns/${cid}`}
-                      className="text-sky-700 hover:underline"
-                    >
-                      {cid.slice(0, 6)}…
-                    </Link>
-                  ))}
-                </span>
-              }
-            />
+            <div className="sm:col-span-2">
+              <Row
+                label="Campaigns"
+                value={
+                  <span className="flex flex-wrap gap-1">
+                    {cert.relatedCampaignIds.map((cid) => (
+                      <Link
+                        key={cid}
+                        href={`/campaigns/${cid}`}
+                        className="text-sky-700 hover:underline"
+                      >
+                        {cid.slice(0, 6)}…
+                      </Link>
+                    ))}
+                  </span>
+                }
+              />
+            </div>
           ) : null}
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Verify</CardTitle>
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-sky-700" />
+            <CardTitle className="text-base">Verify on Drop of Water</CardTitle>
+          </div>
           <CardDescription>
-            This certificate is verifiable on Drop of Water by its code. Old share
-            links keep working even if a newer version is issued.
+            This certificate is verifiable by its code. Old share links keep
+            working even if a newer version is issued.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+          <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
             <code className="flex-1 font-mono text-sm text-slate-700">
               {cert.certificateCode}
             </code>
             <Button size="sm" variant="outline" onClick={copy}>
-              <Share2 className="h-3.5 w-3.5" />
               Copy
             </Button>
           </div>
@@ -173,7 +188,9 @@ export default function PublicCertificatePage({
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
-      <div className="text-xs uppercase tracking-wide text-slate-500">{label}</div>
+      <div className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+        {label}
+      </div>
       <div className="mt-0.5 text-sm text-slate-900">{value}</div>
     </div>
   );

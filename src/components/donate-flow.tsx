@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Heart, Info, Loader2, ShieldCheck } from "lucide-react";
+import { Heart, Info, ShieldCheck, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { campaignsApi } from "@/lib/api/campaigns";
@@ -55,13 +55,11 @@ const formSchema = z
 
 type FormValues = z.infer<typeof formSchema>;
 
-type DonateState = "idle" | "submitting" | "awaitingCheckout";
-
 export function DonateFlow({ campaignId }: { campaignId: string }) {
   const router = useRouter();
   const { state } = useAuth();
   const isAuthed = state.status === "authenticated";
-  const [state_, setState] = useState<DonateState>("idle");
+  const [state_, setState] = useState<"idle" | "submitting" | "awaitingCheckout">("idle");
   const [preset, setPreset] = useState<number | null>(500);
   const [amountInput, setAmountInput] = useState<string>("500");
 
@@ -126,7 +124,9 @@ export function DonateFlow({ campaignId }: { campaignId: string }) {
         window.location.assign(url);
       } else {
         toast.success("Donation recorded. We'll notify you when it settles.");
-        router.push(`/campaigns/${campaignId}/donate/return?status=manual&tx_ref=${data.donation.transactionId ?? ""}`);
+        router.push(
+          `/campaigns/${campaignId}/donate/return?status=manual&tx_ref=${data.donation.transactionId ?? ""}`,
+        );
       }
     },
     onError: (err) => {
@@ -191,13 +191,16 @@ export function DonateFlow({ campaignId }: { campaignId: string }) {
       <div className="flex flex-col gap-6">
         <Link
           href={`/campaigns/${campaignId}`}
-          className="text-sm text-slate-500 hover:text-slate-700"
+          className="inline-flex items-center gap-1 text-sm text-slate-500 transition-colors hover:text-slate-900"
         >
-          ← Back to campaign
+          <span aria-hidden>←</span> Back to campaign
         </Link>
 
         <header className="flex flex-col gap-2">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+          <span className="text-xs font-semibold uppercase tracking-wide text-sky-700">
+            Make a gift
+          </span>
+          <h1 className="text-balance text-3xl font-bold tracking-tight text-slate-900">
             Donate to {campaign.title}
           </h1>
           <p className="text-slate-600">
@@ -208,7 +211,7 @@ export function DonateFlow({ campaignId }: { campaignId: string }) {
         <form onSubmit={onSubmit} className="flex flex-col gap-6">
           <Card>
             <CardHeader>
-              <CardTitle>Amount</CardTitle>
+              <CardTitle className="text-base">Amount</CardTitle>
               <CardDescription>Choose a preset or enter your own.</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
@@ -221,9 +224,9 @@ export function DonateFlow({ campaignId }: { campaignId: string }) {
                       setPreset(a);
                       setAmountInput(String(a));
                     }}
-                    className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+                    className={`rounded-lg border px-3 py-2.5 text-sm font-medium transition-all ${
                       preset === a
-                        ? "border-sky-500 bg-sky-500 text-white"
+                        ? "border-slate-900 bg-slate-900 text-white shadow-sm"
                         : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
                     }`}
                     disabled={disabled}
@@ -240,7 +243,7 @@ export function DonateFlow({ campaignId }: { campaignId: string }) {
                   Or enter an amount in ETB
                 </label>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-slate-500">ETB</span>
+                  <span className="text-sm font-medium text-slate-500">ETB</span>
                   <input
                     id="amount"
                     type="number"
@@ -248,7 +251,7 @@ export function DonateFlow({ campaignId }: { campaignId: string }) {
                     step={1}
                     value={amountInput}
                     onChange={(e) => onAmountInput(e.target.value)}
-                    className="w-40 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                    className="w-40 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
                     disabled={disabled}
                   />
                 </div>
@@ -257,12 +260,12 @@ export function DonateFlow({ campaignId }: { campaignId: string }) {
                 ) : null}
               </div>
               {willTriggerReview ? (
-                <div className="flex items-start gap-2 rounded-md bg-amber-50 p-3 text-xs text-amber-800">
+                <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
                   <Info className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
                   <p>
-                    Gifts of {formatSmallestUnit(HIGH_VALUE_DONATION_THRESHOLD, "ETB")} or more are
-                    reviewed by our finance team after the gateway captures the payment. You will
-                    still be charged immediately.
+                    Gifts of {formatSmallestUnit(HIGH_VALUE_DONATION_THRESHOLD, "ETB")} or more
+                    are reviewed by our finance team after the gateway captures the
+                    payment. You will still be charged immediately.
                   </p>
                 </div>
               ) : null}
@@ -271,7 +274,7 @@ export function DonateFlow({ campaignId }: { campaignId: string }) {
 
           <Card>
             <CardHeader>
-              <CardTitle>Payment method</CardTitle>
+              <CardTitle className="text-base">Payment method</CardTitle>
               <CardDescription>You will be redirected to the gateway to pay.</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
@@ -279,9 +282,9 @@ export function DonateFlow({ campaignId }: { campaignId: string }) {
                 {(["chapa", "zeffy", "paypal", "stripe"] as const).map((m) => (
                   <label
                     key={m}
-                    className={`flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2.5 text-sm transition-colors ${
+                    className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-3 text-sm transition-colors ${
                       paymentMethod === m
-                        ? "border-sky-500 bg-sky-50"
+                        ? "border-sky-500 bg-sky-50/60"
                         : "border-slate-200 bg-white hover:border-slate-300"
                     }`}
                   >
@@ -303,8 +306,8 @@ export function DonateFlow({ campaignId }: { campaignId: string }) {
               </div>
               {paymentMethod === "zeffy" ? (
                 <p className="text-xs text-slate-500">
-                  Zeffy only accepts USD or CAD. Use the same email on the form as on this
-                  donation.
+                  Zeffy only accepts USD or CAD. Use the same email on the form as on
+                  this donation.
                 </p>
               ) : null}
             </CardContent>
@@ -313,9 +316,10 @@ export function DonateFlow({ campaignId }: { campaignId: string }) {
           {!isAuthed ? (
             <Card>
               <CardHeader>
-                <CardTitle>Your details</CardTitle>
+                <CardTitle className="text-base">Your details</CardTitle>
                 <CardDescription>
-                  Optional for small gifts. Required for gifts at or above the review threshold.
+                  Optional for small gifts. Required for gifts at or above the review
+                  threshold.
                 </CardDescription>
               </CardHeader>
               <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -340,13 +344,13 @@ export function DonateFlow({ campaignId }: { campaignId: string }) {
 
           <Card>
             <CardHeader>
-              <CardTitle>Message (optional)</CardTitle>
+              <CardTitle className="text-base">Message (optional)</CardTitle>
             </CardHeader>
             <CardContent>
               <textarea
                 rows={3}
                 placeholder="A note to the campaigners…"
-                className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
                 {...register("message")}
                 disabled={disabled}
               />
@@ -375,7 +379,7 @@ export function DonateFlow({ campaignId }: { campaignId: string }) {
             >
               {state_ === "awaitingCheckout" ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Sparkles className="h-4 w-4 animate-spin" />
                   Redirecting…
                 </>
               ) : (
@@ -398,7 +402,7 @@ export function DonateFlow({ campaignId }: { campaignId: string }) {
             <div className="flex items-baseline justify-between">
               <span className="text-slate-500">Amount</span>
               <span className="font-semibold text-slate-900">
-                <Money cents={currentAmount * 100} currency="ETB" />
+                <Money cents={currentAmount * 100} currency="ETB" emphasis="lg" />
               </span>
             </div>
             {message ? (
@@ -414,14 +418,17 @@ export function DonateFlow({ campaignId }: { campaignId: string }) {
                   {donorName ?? "Anonymous"}{" "}
                   {isAnonymous ? <span className="text-xs">(hidden publicly)</span> : null}
                 </span>
-                {donorEmail ? <span className="text-xs text-slate-500">{donorEmail}</span> : null}
+                {donorEmail ? (
+                  <span className="text-xs text-slate-500">{donorEmail}</span>
+                ) : null}
               </div>
             ) : null}
             <div className="border-t border-slate-100 pt-3 text-xs text-slate-500">
               <p className="inline-flex items-start gap-1.5">
                 <ShieldCheck className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
-                Your donation is created as <em>pending</em> until the gateway confirms capture.
-                Only then does it count toward the campaign total.
+                Your donation is created as <em>pending</em> until the gateway
+                confirms capture. Only then does it count toward the campaign
+                total.
               </p>
             </div>
           </CardContent>
@@ -471,7 +478,7 @@ function Field({
         id={id}
         type={type}
         disabled={disabled}
-        className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
         {...inputProps}
       />
       {error ? <p className="mt-1 text-xs text-rose-600">{error}</p> : null}

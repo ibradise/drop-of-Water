@@ -5,6 +5,7 @@ import { Toaster } from "sonner";
 import { QueryProvider } from "@/lib/query/provider";
 import { AuthProvider } from "@/lib/auth/context";
 import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
 import { MockBoot } from "@/components/mock-boot";
 
 const geistSans = Geist({
@@ -33,14 +34,17 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-slate-50 text-slate-900">
+      <body className="flex min-h-full flex-col bg-slate-50 text-slate-900">
         <QueryProvider>
           <AuthProvider>
             <MockBoot>
               <SiteHeader />
-              <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-                {children}
+              <main className="flex-1">
+                <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
+                  {children}
+                </div>
               </main>
+              <SiteFooter />
               <Toaster richColors position="top-right" />
             </MockBoot>
           </AuthProvider>

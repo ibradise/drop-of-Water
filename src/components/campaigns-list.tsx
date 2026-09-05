@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { Frown } from "lucide-react";
+import { Frown, Search } from "lucide-react";
 import { campaignsApi } from "@/lib/api/campaigns";
 import { CAMPAIGN_STATUSES, type CampaignStatus } from "@/lib/enums";
 import type { Campaign } from "@/lib/schemas/campaign";
@@ -43,11 +43,16 @@ export function CampaignsList({ initialStatus }: { initialStatus: CampaignStatus
 
   return (
     <div className="flex flex-col gap-6">
-      <StatusFilter
-        value={status}
-        onChange={onStatusChange}
-        options={CAMPAIGN_STATUSES}
-      />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <StatusFilter value={status} onChange={onStatusChange} options={CAMPAIGN_STATUSES} />
+        <div className="flex items-center gap-2 text-xs text-slate-500">
+          {meta ? (
+            <span>
+              {meta.total} campaign{meta.total === 1 ? "" : "s"}
+            </span>
+          ) : null}
+        </div>
+      </div>
 
       {query.isError ? (
         <EmptyState
@@ -62,6 +67,7 @@ export function CampaignsList({ initialStatus }: { initialStatus: CampaignStatus
         />
       ) : showEmpty ? (
         <EmptyState
+          icon={<Search className="h-8 w-8" />}
           title="No campaigns found"
           description={
             status
@@ -126,9 +132,9 @@ export function CampaignsList({ initialStatus }: { initialStatus: CampaignStatus
 
 function CampaignSkeleton() {
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white">
+    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white">
       <div className="aspect-[16/9] animate-pulse bg-slate-100" />
-      <div className="flex flex-col gap-2 p-5">
+      <div className="flex flex-col gap-2 p-6">
         <div className="h-4 w-1/3 animate-pulse rounded bg-slate-100" />
         <div className="h-5 w-3/4 animate-pulse rounded bg-slate-100" />
         <div className="h-4 w-full animate-pulse rounded bg-slate-100" />

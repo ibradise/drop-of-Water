@@ -7,6 +7,7 @@ import { z } from "zod";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
+import { ArrowRight, Lock, Mail, User } from "lucide-react";
 import { useAuth } from "@/lib/auth/context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,67 +52,89 @@ export default function SignUpPage() {
 
   return (
     <div className="mx-auto flex max-w-md flex-col gap-6">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Create your account</h1>
+      <header className="flex flex-col gap-2 text-center">
+        <span className="text-xs font-semibold uppercase tracking-wide text-sky-700">
+          Join us
+        </span>
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+          Create your account
+        </h1>
         <p className="text-slate-600">
-          Sign up with email. We&rsquo;ll ask a few quick questions to set up your profile.
+          Sign up with email. We&rsquo;ll ask a few quick questions to set up
+          your profile.
         </p>
       </header>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Email + password</CardTitle>
-          <CardDescription>Use a real email — we&rsquo;ll send you a verification link.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={onSubmit} className="flex flex-col gap-3">
+        <CardContent className="p-6">
+          <form onSubmit={onSubmit} className="flex flex-col gap-4">
             <div>
               <label htmlFor="email" className="mb-1 block text-sm font-medium text-slate-700">
                 Email
               </label>
-              <input
-                id="email"
-                type="email"
-                autoComplete="email"
-                {...register("email")}
-                className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-              />
+              <div className="relative">
+                <Mail className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                <input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                  {...register("email")}
+                  className="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+                />
+              </div>
               {errors.email ? (
                 <p className="mt-1 text-xs text-rose-600">{errors.email.message}</p>
               ) : null}
             </div>
             <div>
-              <label htmlFor="password" className="mb-1 block text-sm font-medium text-slate-700">
+              <label
+                htmlFor="password"
+                className="mb-1 block text-sm font-medium text-slate-700"
+              >
                 Password
               </label>
-              <input
-                id="password"
-                type="password"
-                autoComplete="new-password"
-                {...register("password")}
-                className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-              />
+              <div className="relative">
+                <Lock className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                <input
+                  id="password"
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="At least 8 characters"
+                  {...register("password")}
+                  className="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+                />
+              </div>
               {errors.password ? (
                 <p className="mt-1 text-xs text-rose-600">{errors.password.message}</p>
               ) : null}
             </div>
             <div>
-              <label htmlFor="confirm" className="mb-1 block text-sm font-medium text-slate-700">
+              <label
+                htmlFor="confirm"
+                className="mb-1 block text-sm font-medium text-slate-700"
+              >
                 Confirm password
               </label>
-              <input
-                id="confirm"
-                type="password"
-                autoComplete="new-password"
-                {...register("confirm")}
-                className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-              />
+              <div className="relative">
+                <Lock className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                <input
+                  id="confirm"
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="Repeat your password"
+                  {...register("confirm")}
+                  className="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+                />
+              </div>
               {errors.confirm ? (
                 <p className="mt-1 text-xs text-rose-600">{errors.confirm.message}</p>
               ) : null}
             </div>
-            <Button type="submit" isLoading={submitting}>
+            <Button type="submit" size="lg" isLoading={submitting}>
+              <User className="h-4 w-4" />
               Create account
+              <ArrowRight className="h-4 w-4" />
             </Button>
           </form>
         </CardContent>
