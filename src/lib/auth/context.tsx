@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   GoogleAuthProvider,
   onAuthStateChanged,
@@ -11,9 +11,10 @@ import {
   sendPasswordResetEmail,
   type User as FirebaseUser,
 } from "firebase/auth";
-import { getFirebaseAuth, isFirebaseConfigured } from "@/lib/firebase/client";
+import { getFirebaseAuth, getFirebaseMessaging, isFirebaseConfigured } from "@/lib/firebase/client";
 import { setTokenProvider, ApiError } from "@/lib/api/client";
 import { usersApi } from "@/lib/api/users";
+import { notificationsApi } from "@/lib/api/notifications";
 import type { User } from "@/lib/schemas/user";
 
 const MOCK_TOKEN_KEY = "dow.mock.token";
@@ -252,6 +253,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await refreshDowProfile(state.firebaseUser);
   }, [refreshDowProfile, state]);
 
+  useFcmAutoRegistration(state, isMockMode, firebaseConfigured);
+
   const devSignIn = useCallback(
     async (mode: "anon" | "meron") => {
       if (!isMockMode) throw new Error("devSignIn is only available in mock mode");
@@ -288,6 +291,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
+}
+
+// FCM auto-registration: once a user becomes authenticated, request browser
+// permission, get the device token, and POST it to /notifications/device-tokens.
+// Runs at most once per session per user. Errors are swallowed — push is
+// opt-in and a failure here must never break sign-in.
+function useFcmAutoRegistration(
+  state: AuthState,
+  isMockMode: boolean,
+  firebaseConfigured: boolean,
+) {
+  const lastRegisteredFor = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (state.status !== "authenticated") return;
+    if (isMockMode) return; // No real Firebase project in mock mode.
+    if (!firebaseConfigured) return;
+    if (typeof window === "undefined") return;
+    if (typeof Notification === "undefined") return;
+
+    const userKey = state.user.id;
+    if (lastRegisteredFor.current === userKey) return;
+    lastRegisteredFor.current = userKey;
+
+    (async () => {
+      try {
+        let permission: NotificationPermission = Notification.permission;
+        if (permission === "default") {
+          permission = await Notification.requestPermission();
+        }
+        if (permission !== "granted") return;
+
+        const { getToken } = await import("firebase/messaging");
+        const messaging = await getFirebaseMessaging();
+        if (!messaging) return;
+
+        const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+        const token = await getToken(messaging, {
+          vapidKey: vapidKey || undefined,
+          serviceWorkerRegistration: await navigator.serviceWorker.ready,
+        });
+        if (!token) return;
+
+        await notificationsApi.registerDevice(token);
+      } catch (err) {
+        // Best-effort. Log only.
+        console.warn("FCM auto-registration failed", err);
+      }
+    })();
+  }, [state, isMockMode, firebaseConfigured]);
 }
 
 export function useAuth(): AuthContextValue {
