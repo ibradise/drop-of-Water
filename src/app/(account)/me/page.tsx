@@ -42,8 +42,8 @@ export default function MePage() {
     <div className="flex flex-col gap-8 lg:flex-row">
       <Card className="flex-1 overflow-hidden">
         <div className="relative h-24 bg-gradient-to-br from-sky-500 via-cyan-500 to-cyan-600" />
-        <CardContent className="-mt-12 flex flex-col items-center gap-3 sm:-mt-10 sm:flex-row sm:items-end sm:gap-5">
-          <div className="grid h-20 w-20 place-items-center rounded-2xl border-4 border-white bg-gradient-to-br from-sky-500 to-cyan-600 text-xl font-bold text-white shadow-md">
+        <CardContent className="flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:gap-5">
+          <div className="grid h-20 w-20 -translate-y-12 place-items-center rounded-2xl border-4 border-white bg-gradient-to-br from-sky-500 to-cyan-600 text-xl font-bold text-white shadow-md sm:-translate-y-10">
             {initials || <UserIcon className="h-7 w-7" />}
           </div>
           <div className="flex-1 text-center sm:text-left">
