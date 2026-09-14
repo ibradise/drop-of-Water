@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarDays, Users } from "lucide-react";
+import { CalendarDays, Droplets, Users } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Money } from "@/components/ui/money";
 import { CampaignStatusBadge } from "@/components/ui/status-badges";
@@ -30,7 +30,9 @@ export function CampaignCard({ campaign }: { campaign: Campaign }) {
               className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
           ) : (
-            <div className="h-full w-full bg-gradient-to-br from-emerald-200 via-sky-100 to-cyan-100" />
+            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200/50">
+              <Droplets className="h-10 w-10 text-slate-300" />
+            </div>
           )}
           <div className="absolute left-3 top-3">
             <CampaignStatusBadge status={campaign.status} />

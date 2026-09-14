@@ -2,11 +2,12 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { ArrowRight, Heart, MapPin, Shield, Sparkles, Users } from "lucide-react";
+import { ArrowRight, Heart, Shield, Sparkles, TriangleAlert, Users } from "lucide-react";
 import { campaignsApi } from "@/lib/api/campaigns";
 import { projectsApi } from "@/lib/api/projects";
 import { CampaignCard } from "@/components/campaign-card";
 import { ProjectCard } from "@/components/project-card";
+import { EmptyState } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Money } from "@/components/ui/money";
 
@@ -38,12 +39,20 @@ const FEATURES = [
 ] as const;
 
 export default function HomePage() {
-  const { data: featured, isLoading: featuredLoading } = useQuery({
+  const {
+    data: featured,
+    isLoading: featuredLoading,
+    error: featuredError,
+  } = useQuery({
     queryKey: ["campaigns", "active", "featured"],
     queryFn: () => campaignsApi.active({ page: 1, limit: 3 }),
   });
 
-  const { data: projects } = useQuery({
+  const {
+    data: projects,
+    isLoading: projectsLoading,
+    error: projectsError,
+  } = useQuery({
     queryKey: ["projects", "list", "fundable-featured"],
     queryFn: () =>
       projectsApi.list({ status: "fundable", page: 1, limit: 3 }),
@@ -63,154 +72,199 @@ export default function HomePage() {
   );
 
   return (
-    <div className="flex flex-col gap-20">
-      <section className="relative -mt-2 flex flex-col items-center gap-7 pt-6 text-center sm:pt-10">
-        <span className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-white px-3 py-1 text-xs font-medium text-sky-700 shadow-sm">
-          <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
-          Crowdfunding for clean water
-        </span>
-        <h1 className="max-w-3xl text-balance text-4xl font-bold tracking-tight text-slate-900 sm:text-6xl">
-          Every drop counts.{" "}
-          <span className="gradient-text">Fund a well,</span> change a community.
-        </h1>
-        <p className="max-w-2xl text-balance text-lg text-slate-600">
-          Drop of Water connects donors, fundraisers, and on-the-ground project
-          teams to build lasting water infrastructure across Ethiopia.
-        </p>
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <Link href="/campaigns">
-            <Button size="lg">
-              Browse campaigns
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </Link>
-          <Link href="/projects">
-            <Button size="lg" variant="outline">
-              See projects
-            </Button>
-          </Link>
+    <div className="flex flex-col">
+      {/* ── Hero ─────────────────────────────────────────── */}
+      <section className="w-screen ml-[calc(50%-50vw)] -mt-8 bg-white py-14 text-center sm:-mt-12 sm:py-20">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6">
+          <span className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-white px-3 py-1 text-xs font-medium text-sky-700 shadow-sm">
+            <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
+            Crowdfunding for clean water
+          </span>
+          <h1 className="mt-6 max-w-3xl text-balance text-4xl font-bold tracking-tight text-slate-900 sm:text-6xl">
+            Every drop counts.{" "}
+            <span className="gradient-text">Fund a well,</span> change a community.
+          </h1>
+          <p className="mx-auto mt-5 max-w-2xl text-balance text-lg text-slate-600">
+            Drop of Water connects donors, fundraisers, and on-the-ground project
+            teams to build lasting water infrastructure across Ethiopia.
+          </p>
+          <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+            <Link href="/campaigns">
+              <Button size="lg">
+                Browse campaigns
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+            <Link href="/projects">
+              <Button size="lg" variant="outline">
+                See projects
+              </Button>
+            </Link>
+          </div>
         </div>
       </section>
 
-      <section className="grid gap-3 sm:grid-cols-3">
-        <Stat
-          label="Active campaigns"
-          value={String(activeCampaigns.length || "—")}
-        />
-        <Stat
-          label="Raised this week"
-          value={totalRaised > 0 ? <Money cents={totalRaised} currency="ETB" /> : "—"}
-        />
-        <Stat
-          label="People served (est.)"
-          value={peopleServed > 0 ? peopleServed.toLocaleString() : "—"}
-        />
+      {/* ── Stats ────────────────────────────────────────── */}
+      <section className="w-screen ml-[calc(50%-50vw)] bg-white py-10 sm:py-12">
+        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-4 px-4 sm:grid-cols-3 sm:px-6">
+          <Stat
+            label="Active campaigns"
+            value={String(activeCampaigns.length || "—")}
+          />
+          <Stat
+            label="Raised this week"
+            value={totalRaised > 0 ? <Money cents={totalRaised} currency="ETB" /> : "—"}
+          />
+          <Stat
+            label="People served (est.)"
+            value={peopleServed > 0 ? peopleServed.toLocaleString() : "—"}
+          />
+        </div>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2">
-        {FEATURES.map((f) => (
-          <div
-            key={f.title}
-            className="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
-          >
-            <div
-              className={`pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-gradient-to-br ${f.tint} opacity-50 blur-2xl transition-opacity group-hover:opacity-80`}
-            />
-            <div className="relative flex flex-col gap-3">
+      {/* ── Features ─────────────────────────────────────── */}
+      <section className="w-screen ml-[calc(50%-50vw)] bg-cyan-50 py-12 sm:py-16">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="grid gap-4 sm:grid-cols-2">
+            {FEATURES.map((f) => (
               <div
-                className={`inline-flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br ${f.tint}`}
+                key={f.title}
+                className="group rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
               >
-                <f.icon className="h-5 w-5" />
+                <div className="flex flex-col gap-3">
+                  <div
+                    className={`inline-flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br ${f.tint}`}
+                  >
+                    <f.icon className="h-5 w-5" />
+                  </div>
+                  <h3 className="text-lg font-semibold tracking-tight text-slate-900">
+                    {f.title}
+                  </h3>
+                  <p className="text-sm text-slate-600">{f.body}</p>
+                </div>
               </div>
-              <h3 className="text-lg font-semibold tracking-tight text-slate-900">
-                {f.title}
-              </h3>
-              <p className="text-sm text-slate-600">{f.body}</p>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Active campaigns ─────────────────────────────── */}
+      <section className="w-screen ml-[calc(50%-50vw)] bg-sky-50 py-12 sm:py-16" id="active-campaigns">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-end">
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-wide text-sky-700">
+                Right now
+              </span>
+              <h2 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+                Active campaigns
+              </h2>
+              <p className="text-slate-600">Real fundraisers, real wells, real impact.</p>
             </div>
+            <Link href="/campaigns">
+              <Button variant="outline" size="sm">
+                All campaigns
+                <ArrowRight className="h-3 w-3" />
+              </Button>
+            </Link>
           </div>
-        ))}
-      </section>
-
-      <section className="flex flex-col gap-6">
-        <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-end">
-          <div>
-            <span className="text-xs font-semibold uppercase tracking-wide text-sky-700">
-              Right now
-            </span>
-            <h2 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
-              Active campaigns
-            </h2>
-            <p className="text-slate-600">Real fundraisers, real wells, real impact.</p>
-          </div>
-          <Link href="/campaigns">
-            <Button variant="outline" size="sm">
-              All campaigns
-              <ArrowRight className="h-3 w-3" />
-            </Button>
-          </Link>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {featuredLoading
-            ? Array.from({ length: 3 }, (_, i) => (
-                <div
-                  key={i}
-                  className="aspect-[16/9] animate-pulse rounded-2xl bg-slate-100"
-                />
-              ))
-            : activeCampaigns.length === 0
-              ? null
-              : activeCampaigns.map((c) => <CampaignCard key={c._id} campaign={c} />)}
-        </div>
-      </section>
-
-      <section className="flex flex-col gap-6">
-        <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-end">
-          <div>
-            <span className="text-xs font-semibold uppercase tracking-wide text-sky-700">
-              Open to funding
-            </span>
-            <h2 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
-              Fundable projects
-            </h2>
-            <p className="text-slate-600">
-              Real water-infrastructure projects accepting new campaigns.
-            </p>
-          </div>
-          <Link href="/projects">
-            <Button variant="outline" size="sm">
-              All projects
-              <ArrowRight className="h-3 w-3" />
-            </Button>
-          </Link>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {fundableProjects.length === 0
-            ? Array.from({ length: 3 }, (_, i) => (
-                <div
-                  key={i}
-                  className="aspect-[16/9] animate-pulse rounded-2xl bg-slate-100"
-                />
-              ))
-            : fundableProjects.map((p) => <ProjectCard key={p._id} project={p} />)}
+          {featuredLoading ? (
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 3 }, (_, i) => <CardSkeleton key={i} />)}
+            </div>
+          ) : featuredError ? (
+            <EmptyState
+              icon={<TriangleAlert className="h-6 w-6" />}
+              title="Couldn't load campaigns"
+              description="Something went wrong while connecting to the campaign feed. Refresh the page to try again."
+            />
+          ) : activeCampaigns.length === 0 ? (
+            <EmptyState
+              icon={<Heart className="h-6 w-6" />}
+              title="No active campaigns right now"
+              description="New fundraisers are added all the time — check out the projects page to see what's accepting funding."
+              action={
+                <Link href="/projects">
+                  <Button size="sm">Browse projects</Button>
+                </Link>
+              }
+            />
+          ) : (
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {activeCampaigns.map((c) => <CampaignCard key={c._id} campaign={c} />)}
+            </div>
+          )}
         </div>
       </section>
 
-      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-sky-600 via-cyan-600 to-cyan-700 p-8 text-white sm:p-12">
+      {/* ── Fundable projects ────────────────────────────── */}
+      <section className="w-screen ml-[calc(50%-50vw)] bg-white py-12 sm:py-16">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-end">
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-wide text-sky-700">
+                Open to funding
+              </span>
+              <h2 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+                Fundable projects
+              </h2>
+              <p className="text-slate-600">
+                Real water-infrastructure projects accepting new campaigns.
+              </p>
+            </div>
+            <Link href="/projects">
+              <Button variant="outline" size="sm">
+                All projects
+                <ArrowRight className="h-3 w-3" />
+              </Button>
+            </Link>
+          </div>
+          {projectsLoading ? (
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 3 }, (_, i) => <CardSkeleton key={i} />)}
+            </div>
+          ) : projectsError ? (
+            <EmptyState
+              icon={<TriangleAlert className="h-6 w-6" />}
+              title="Couldn't load projects"
+              description="Something went wrong while loading fundable projects. Refresh the page to try again."
+            />
+          ) : fundableProjects.length === 0 ? (
+            <EmptyState
+              icon={<Shield className="h-6 w-6" />}
+              title="No fundable projects right now"
+              description="Projects open to new campaigns appear here. Check back soon or browse all projects."
+              action={
+                <Link href="/projects">
+                  <Button size="sm">See all projects</Button>
+                </Link>
+              }
+            />
+          ) : (
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {fundableProjects.map((p) => <ProjectCard key={p._id} project={p} />)}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ── CTA ──────────────────────────────────────────── */}
+      <section className="w-screen ml-[calc(50%-50vw)] relative overflow-hidden bg-gradient-to-br from-sky-600 via-cyan-600 to-cyan-700 py-14 text-white sm:py-20">
         <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-32 -left-10 h-72 w-72 rounded-full bg-cyan-300/20 blur-3xl" />
-        <div className="relative flex flex-col items-start gap-5">
+        <div className="relative mx-auto max-w-6xl px-4 sm:px-6">
           <span className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-medium text-white backdrop-blur">
             <Heart className="h-3 w-3" />
             Make a difference
           </span>
-          <h2 className="text-balance text-3xl font-semibold sm:text-4xl">
+          <h2 className="mt-5 text-balance text-3xl font-semibold sm:text-4xl">
             Ready to give your first birr?
           </h2>
-          <p className="max-w-xl text-cyan-50">
+          <p className="mt-4 max-w-xl text-cyan-50">
             Whether you give 100 ETB or run a chapter campaign of 100,000 ETB,
             you&rsquo;ll see the wells you helped fund and the people they serve.
           </p>
-          <div className="flex flex-wrap gap-3">
+          <div className="mt-7 flex flex-wrap gap-3">
             <Link href="/campaigns">
               <Button variant="secondary" size="lg">
                 Donate now
@@ -238,6 +292,24 @@ function Stat({ label, value }: { label: string; value: React.ReactNode }) {
         {label}
       </div>
       <div className="mt-1 text-2xl font-semibold text-slate-900">{value}</div>
+    </div>
+  );
+}
+
+function CardSkeleton() {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+      <div className="aspect-[16/9] animate-pulse bg-slate-100" />
+      <div className="flex flex-col gap-3 p-5">
+        <div className="h-4 w-3/4 animate-pulse rounded bg-slate-100" />
+        <div className="h-3 w-full animate-pulse rounded bg-slate-100" />
+        <div className="h-3 w-2/3 animate-pulse rounded bg-slate-100" />
+        <div className="mt-1 h-2 w-full rounded bg-slate-100" />
+        <div className="flex items-center justify-between">
+          <div className="h-4 w-20 animate-pulse rounded bg-slate-100" />
+          <div className="h-4 w-24 animate-pulse rounded bg-slate-100" />
+        </div>
+      </div>
     </div>
   );
 }

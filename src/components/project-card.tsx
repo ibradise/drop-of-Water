@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MapPin, Users } from "lucide-react";
+import { Droplets, MapPin, Users } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -32,7 +32,9 @@ export function ProjectCard({ project }: { project: Project }) {
               className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
           ) : (
-            <div className="h-full w-full bg-gradient-to-br from-sky-200 via-cyan-100 to-emerald-100" />
+            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200/50">
+              <Droplets className="h-10 w-10 text-slate-300" />
+            </div>
           )}
           <div className="absolute left-3 top-3">
             <ProjectStatusBadge status={project.status} />

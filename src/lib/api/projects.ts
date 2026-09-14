@@ -23,6 +23,13 @@ export const projectsApi = {
       })
       .then((data) => paginatedProject.parse(data) as Paginated<Project>),
 
+  // list: (params?: PaginationParams & { status?: string }) =>
+  //   api
+  //     .get<unknown>("/projects", {
+  //       query: params as Record<string, unknown> | undefined,
+  //     })
+  //     .then((data) => data as Paginated<Project>),
+
   fundable: (params?: PaginationParams) =>
     api
       .get<unknown>("/projects/fundable", {

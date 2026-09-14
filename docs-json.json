@@ -1,0 +1,3043 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/": {
+      "get": {
+        "description": "Public liveness probe; returns a plain greeting string.",
+        "operationId": "AppController_getHello",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Service is up.",
+            "content": {
+              "application/json": { "schema": { "type": "string" } }
+            }
+          }
+        },
+        "summary": "Health check",
+        "tags": ["App"]
+      }
+    },
+    "/notifications/me": {
+      "get": {
+        "description": "The caller's stored notifications (newest first, up to 50), sourced from Firestore. Returns an empty array when the user has none (or Firebase is unconfigured server-side).",
+        "operationId": "NotificationsController_myNotifications",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Array of stored notifications.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "title",
+                      "body",
+                      "data",
+                      "read",
+                      "createdAt"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "description": "Notification id."
+                      },
+                      "title": { "type": "string" },
+                      "body": { "type": "string" },
+                      "data": {
+                        "type": "object",
+                        "additionalProperties": { "type": "string" },
+                        "description": "Arbitrary string key/value payload attached to the push."
+                      },
+                      "read": { "type": "boolean" },
+                      "createdAt": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "ISO 8601 timestamp, or null."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "My notification history",
+        "tags": ["Notifications"]
+      }
+    },
+    "/notifications/device-tokens": {
+      "post": {
+        "description": "Stores a Firebase Cloud Messaging registration token (issued client-side by the Firebase SDK) against the caller so their device can receive pushes. Idempotent — re-registering the same token is a no-op.",
+        "operationId": "NotificationsController_registerDeviceToken",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDeviceTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": { "description": "Token registered (no response body)." },
+          "400": {
+            "description": "`token` missing, empty, or over 4096 chars."
+          },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Register an FCM device token",
+        "tags": ["Notifications"]
+      },
+      "delete": {
+        "description": "Removes a stored FCM token (e.g. on logout) so the device stops receiving pushes. The token is sent in the request BODY. Idempotent — removing an unknown token is a no-op.",
+        "operationId": "NotificationsController_removeDeviceToken",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDeviceTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": { "description": "Token removed (no response body)." },
+          "400": {
+            "description": "`token` missing, empty, or over 4096 chars."
+          },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "De-register an FCM device token",
+        "tags": ["Notifications"]
+      }
+    },
+    "/users": {
+      "post": {
+        "description": "Creates the DoW profile for the caller of the supplied Firebase ID token. Requires a valid token but NOT an existing DoW account (this is the route that creates it). The Firebase UID and email are taken from the verified token — the `email` body field, if sent, is overridden. New users default to the `donor` role unless `roles` is supplied.",
+        "operationId": "UsersController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateUserDto" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created. Returns the public serialization of the new user."
+          },
+          "400": {
+            "description": "Validation failed (or unknown body fields present)."
+          },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "409": {
+            "description": "A user already exists for this Firebase identity/email."
+          }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Register the current Firebase identity as a DoW user",
+        "tags": ["Users"]
+      },
+      "get": {
+        "description": "Paginated user listing with optional filters: `role`, `entityType`, `isVerified`, `isActive`, `isDeleted`. Boolean filters accept `true`/`false`/`1`/`0`; omitting one means \"don't filter on it\".",
+        "operationId": "UsersController_getUsers",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "One page of users plus pagination metadata.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "meta"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "description": "User document."
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PaginationMetaModel"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid filter or pagination value." },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: system_admin."
+          }
+        },
+        "security": [{ "firebase": [] }, { "firebase": [] }],
+        "summary": "List users (admin)",
+        "tags": ["Users"]
+      }
+    },
+    "/users/me": {
+      "get": {
+        "description": "Returns the authenticated user's own profile (soft-delete bookkeeping omitted).",
+        "operationId": "UsersController_getMe",
+        "parameters": [],
+        "responses": {
+          "200": { "description": "The caller's user document." },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Get my profile",
+        "tags": ["Users"]
+      },
+      "patch": {
+        "description": "Partial self-service update. Only `name`, `phoneNumber`, `entityType`, and `profile` are applied — privileged fields (`roles`, `isVerified`, `isActive`, `email`) are silently ignored even if sent. Profile attributes merge (omitted attributes keep their values) and `profile.socialLinks` is edited via `{ add: [...], remove: [indices] }` operations, never replaced wholesale.",
+        "operationId": "UsersController_updateMe",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateUserDto" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "The updated user document." },
+          "400": {
+            "description": "Validation failed (or unknown body fields present)."
+          },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Update my profile",
+        "tags": ["Users"]
+      }
+    },
+    "/users/{id}": {
+      "get": {
+        "description": "Fetches any user document, including admin-only fields.",
+        "operationId": "UsersController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "User ObjectId.",
+            "schema": {
+              "example": "665f1c2ab1e2f3a4b5c6d7e8",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": { "description": "The user document." },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: system_admin, program_director."
+          },
+          "404": { "description": "No user with this id." }
+        },
+        "security": [{ "firebase": [] }, { "firebase": [] }],
+        "summary": "Get a user by id (admin)",
+        "tags": ["Users"]
+      },
+      "patch": {
+        "description": "Partial update of any user, including the privileged fields: `roles`, `isVerified`, `isActive`. Profile updates use the same merge / add-remove semantics as `PATCH /users/me`.",
+        "operationId": "UsersController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "User ObjectId.",
+            "schema": {
+              "example": "665f1c2ab1e2f3a4b5c6d7e8",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AdminUpdateUserDto" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "The updated user document." },
+          "400": { "description": "Validation failed." },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: system_admin."
+          },
+          "404": { "description": "No user with this id." }
+        },
+        "security": [{ "firebase": [] }, { "firebase": [] }],
+        "summary": "Update any user (admin)",
+        "tags": ["Users"]
+      },
+      "delete": {
+        "description": "Marks the user deleted (`isDeleted: true`) without removing the record. Returns the deleted document.",
+        "operationId": "UsersController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "User ObjectId.",
+            "schema": {
+              "example": "665f1c2ab1e2f3a4b5c6d7e8",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": { "description": "The soft-deleted user document." },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: system_admin."
+          },
+          "404": { "description": "No user with this id." }
+        },
+        "security": [{ "firebase": [] }, { "firebase": [] }],
+        "summary": "Soft-delete a user (admin)",
+        "tags": ["Users"]
+      }
+    },
+    "/projects": {
+      "get": {
+        "description": "Paginated project catalogue, optionally filtered by lifecycle `status`. No authentication required.",
+        "operationId": "ProjectsController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "One page of projects plus pagination metadata.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "meta"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "description": "Project document."
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PaginationMetaModel"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid status or pagination value." }
+        },
+        "summary": "List projects (public)",
+        "tags": ["Projects"]
+      },
+      "post": {
+        "description": "Creates a new water-infrastructure project. Always starts in `draft` — `status` cannot be set here. `createdBy` is stamped from the authenticated caller.",
+        "operationId": "ProjectsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateProjectDto" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "The created project document." },
+          "400": {
+            "description": "Validation failed (or unknown body fields present)."
+          },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: program_director, system_admin."
+          }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Create a project (internal team)",
+        "tags": ["Projects"]
+      }
+    },
+    "/projects/fundable": {
+      "get": {
+        "description": "Projects in the `fundable` status — the only ones a new campaign may be created against. No authentication required.",
+        "operationId": "ProjectsController_findFundable",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "One page of fundable projects plus pagination metadata.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "meta"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "description": "Project document (status is always `fundable`)."
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PaginationMetaModel"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "List fundable projects (public)",
+        "tags": ["Projects"]
+      }
+    },
+    "/projects/{id}": {
+      "get": {
+        "description": "Fetches one project with all embedded sub-resources (milestones, cost breakdown, photos, proofs of impact).",
+        "operationId": "ProjectsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Project ObjectId.",
+            "schema": {
+              "example": "665f1c2ab1e2f3a4b5c6d7e8",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": { "description": "The project document." },
+          "404": { "description": "No project with this id." }
+        },
+        "summary": "Get a project by id (public)",
+        "tags": ["Projects"]
+      },
+      "patch": {
+        "description": "Partial update of scalar fields, `location`, and/or lifecycle `status`. Array members (`costBreakdown`, `photos`, `milestones`, `proofOfImpact`) are NOT updatable here — use their dedicated sub-resource routes. Status moves must follow the transition map (`draft → assessment → fundable → funded → in_progress → completed`, `archived` from any active state); an illegal transition is rejected.",
+        "operationId": "ProjectsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Project ObjectId.",
+            "schema": {
+              "example": "665f1c2ab1e2f3a4b5c6d7e8",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateProjectDto" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "The updated project document." },
+          "400": {
+            "description": "Validation failed or illegal status transition."
+          },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: program_director, system_admin."
+          },
+          "404": { "description": "No project with this id." }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Update a project (internal team)",
+        "tags": ["Projects"]
+      },
+      "delete": {
+        "description": "Marks the project deleted without removing the record. Returns the deleted document.",
+        "operationId": "ProjectsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Project ObjectId.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "The soft-deleted project document." },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: program_director, system_admin."
+          },
+          "404": { "description": "No project with this id." }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Soft-delete a project (internal team)",
+        "tags": ["Projects"]
+      }
+    },
+    "/projects/{id}/milestones": {
+      "post": {
+        "description": "Appends up to 20 milestones in one request; each starts in `pending`. The body may be a single milestone object, a raw array, or a wrapped `{ \"items\": [...] }` array.",
+        "operationId": "ProjectsController_addMilestones",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Project ObjectId.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Single object, raw array, or wrapped `{ \"items\": [...] }` array — all three shapes are accepted.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  { "$ref": "#/components/schemas/AddMilestoneDto" },
+                  {
+                    "type": "array",
+                    "items": { "$ref": "#/components/schemas/AddMilestoneDto" }
+                  },
+                  {
+                    "type": "object",
+                    "required": ["items"],
+                    "properties": {
+                      "items": {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/components/schemas/AddMilestoneDto"
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The project document with the new milestones appended."
+          },
+          "400": {
+            "description": "Validation failed, empty batch, or more than 20 milestones."
+          },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: program_director, system_admin, project_manager, site_engineer."
+          },
+          "404": { "description": "No project with this id." }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Add milestone(s) to a project (delivery team)",
+        "tags": ["Projects"]
+      }
+    },
+    "/projects/{id}/milestones/{milestoneId}": {
+      "patch": {
+        "description": "Partial in-place update of one milestone — only the supplied fields change. Supplying `completedAt` records the completion and stamps the caller as the verifier.",
+        "operationId": "ProjectsController_updateMilestone",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Project ObjectId.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "milestoneId",
+            "required": true,
+            "in": "path",
+            "description": "Milestone sub-document ObjectId.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateMilestoneDto" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The project document with the milestone updated."
+          },
+          "400": { "description": "Validation failed." },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: program_director, system_admin, project_manager, site_engineer."
+          },
+          "404": { "description": "No such project or milestone." }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Update a milestone (delivery team)",
+        "tags": ["Projects"]
+      },
+      "delete": {
+        "operationId": "ProjectsController_removeMilestone",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Project ObjectId.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "milestoneId",
+            "required": true,
+            "in": "path",
+            "description": "Milestone sub-document ObjectId.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The project document with the milestone removed."
+          },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: program_director, system_admin, project_manager, site_engineer."
+          },
+          "404": { "description": "No such project or milestone." }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Remove a milestone (delivery team)",
+        "tags": ["Projects"]
+      }
+    },
+    "/projects/{id}/cost-items": {
+      "post": {
+        "description": "Appends up to 50 cost-breakdown line items in one request. Amounts are integers in the smallest currency unit. The body may be a single item object, a raw array, or a wrapped `{ \"items\": [...] }` array.",
+        "operationId": "ProjectsController_addCostItems",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Project ObjectId.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Single object, raw array, or wrapped `{ \"items\": [...] }` array — all three shapes are accepted.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  { "$ref": "#/components/schemas/CostItemDto" },
+                  {
+                    "type": "array",
+                    "items": { "$ref": "#/components/schemas/CostItemDto" }
+                  },
+                  {
+                    "type": "object",
+                    "required": ["items"],
+                    "properties": {
+                      "items": {
+                        "type": "array",
+                        "items": { "$ref": "#/components/schemas/CostItemDto" }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The project document with the new cost items appended."
+          },
+          "400": {
+            "description": "Validation failed, empty batch, or more than 50 items."
+          },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: program_director, system_admin."
+          },
+          "404": { "description": "No project with this id." }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Add cost-breakdown item(s) (internal team)",
+        "tags": ["Projects"]
+      }
+    },
+    "/projects/{id}/cost-items/{itemId}": {
+      "delete": {
+        "operationId": "ProjectsController_removeCostItem",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Project ObjectId.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "itemId",
+            "required": true,
+            "in": "path",
+            "description": "Cost-item sub-document ObjectId.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The project document with the cost item removed."
+          },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: program_director, system_admin."
+          },
+          "404": { "description": "No such project or cost item." }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Remove a cost-breakdown item (internal team)",
+        "tags": ["Projects"]
+      }
+    },
+    "/projects/{id}/photos": {
+      "post": {
+        "description": "Appends up to 50 photo URLs. Each item is a plain URL string (files are uploaded to storage elsewhere; the API stores references). Body must be a raw string array or a wrapped `{ \"items\": [...] }` array (a bare string is rejected).",
+        "operationId": "ProjectsController_addPhotos",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Project ObjectId.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Raw array of URL strings, or wrapped `{ \"items\": [...] }` array.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": { "type": "string", "format": "url" },
+                    "example": ["https://cdn.example.org/well-1.jpg"]
+                  },
+                  {
+                    "type": "object",
+                    "required": ["items"],
+                    "properties": {
+                      "items": {
+                        "type": "array",
+                        "items": { "type": "string", "format": "url" }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The project document with the new photos appended."
+          },
+          "400": {
+            "description": "Validation failed, empty batch, invalid URL, or more than 50 photos."
+          },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: program_director, system_admin."
+          },
+          "404": { "description": "No project with this id." }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Add photo URL(s) to the gallery (internal team)",
+        "tags": ["Projects"]
+      },
+      "delete": {
+        "description": "Photos are plain strings with no id (and may repeat), so removal is positional: pass the zero-based index of the photo to remove, e.g. `DELETE /projects/:id/photos?index=2`.",
+        "operationId": "ProjectsController_removePhotoAt",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Project ObjectId.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "index",
+            "required": true,
+            "in": "query",
+            "description": "Zero-based gallery index of the photo to remove.",
+            "schema": { "example": 2, "type": "number" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The project document with the photo removed."
+          },
+          "400": {
+            "description": "`index` missing, not an integer, or out of range."
+          },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: program_director, system_admin."
+          },
+          "404": { "description": "No project with this id." }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Remove a photo by index (internal team)",
+        "tags": ["Projects"]
+      }
+    },
+    "/projects/{id}/proofs": {
+      "post": {
+        "description": "Appends up to 20 proof-of-impact entries (evidence of delivered work). `uploadedBy` and `date` are stamped server-side. Body may be a single object, a raw array, or a wrapped `{ \"items\": [...] }` array.",
+        "operationId": "ProjectsController_addProofsOfImpact",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Project ObjectId.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Single object, raw array, or wrapped `{ \"items\": [...] }` array — all three shapes are accepted.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  { "$ref": "#/components/schemas/ProofOfImpactDto" },
+                  {
+                    "type": "array",
+                    "items": { "$ref": "#/components/schemas/ProofOfImpactDto" }
+                  },
+                  {
+                    "type": "object",
+                    "required": ["items"],
+                    "properties": {
+                      "items": {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/components/schemas/ProofOfImpactDto"
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The project document with the new proofs appended."
+          },
+          "400": {
+            "description": "Validation failed, empty batch, or more than 20 proofs."
+          },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: program_director, system_admin, project_manager, site_engineer."
+          },
+          "404": { "description": "No project with this id." }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Add proof-of-impact entries (delivery team)",
+        "tags": ["Projects"]
+      }
+    },
+    "/projects/{id}/proofs/{proofId}": {
+      "delete": {
+        "operationId": "ProjectsController_removeProofOfImpact",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Project ObjectId.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "proofId",
+            "required": true,
+            "in": "path",
+            "description": "Proof-of-impact sub-document ObjectId.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The project document with the proof removed."
+          },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: program_director, system_admin, project_manager, site_engineer."
+          },
+          "404": { "description": "No such project or proof entry." }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Remove a proof-of-impact entry (delivery team)",
+        "tags": ["Projects"]
+      }
+    },
+    "/campaigns": {
+      "get": {
+        "description": "Paginated campaign catalogue, optionally filtered by `status` and/or `projectId`. Pass `includeSponsorships=true` to embed each campaign's active corporate sponsors. No authentication required.",
+        "operationId": "CampaignsController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "One page of campaigns plus pagination metadata.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "meta"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "description": "Campaign document."
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PaginationMetaModel"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid filter or pagination value." }
+        },
+        "summary": "List campaigns (public)",
+        "tags": ["Campaigns"]
+      },
+      "post": {
+        "description": "Creates a fundraising campaign against a `fundable` project. Always starts in `draft` — advance it through the submit/approve workflow. `goalAmount` is an integer in the smallest currency unit. `createdBy` and `currentAmount` are derived server-side.",
+        "operationId": "CampaignsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateCampaignDto" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "The created campaign document." },
+          "400": {
+            "description": "Validation failed, or the referenced project is not `fundable`."
+          },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: campaign_creator, chapter_leader, content_contributor, content_manager, digital_coordinator, program_director, system_admin."
+          }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Create a campaign",
+        "tags": ["Campaigns"]
+      }
+    },
+    "/campaigns/active": {
+      "get": {
+        "description": "Campaigns currently live and accepting donations. Pass `includeSponsorships=true` to embed each campaign's active corporate sponsors. No authentication required.",
+        "operationId": "CampaignsController_findActive",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "One page of active campaigns plus pagination metadata.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "meta"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "description": "Campaign document (status is always `active`)."
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PaginationMetaModel"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "List active campaigns (public)",
+        "tags": ["Campaigns"]
+      }
+    },
+    "/campaigns/project/{projectId}": {
+      "get": {
+        "description": "Every campaign raising funds for the given project, paginated. Pass `includeSponsorships=true` to embed each campaign's active corporate sponsors. No authentication required.",
+        "operationId": "CampaignsController_findByProject",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "Project ObjectId.",
+            "schema": {
+              "example": "665f1c2ab1e2f3a4b5c6d7e8",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of the project's campaigns plus pagination metadata.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "meta"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "description": "Campaign document."
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PaginationMetaModel"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "List a project's campaigns (public)",
+        "tags": ["Campaigns"]
+      }
+    },
+    "/campaigns/{id}": {
+      "get": {
+        "description": "Pass `includeSponsorships=true` to embed the campaign's active corporate sponsors as a `sponsorships` array.",
+        "operationId": "CampaignsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Campaign ObjectId.",
+            "schema": {
+              "example": "665f1c2ab1e2f3a4b5c6d7e8",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": { "description": "The campaign document." },
+          "404": { "description": "No campaign with this id." }
+        },
+        "summary": "Get a campaign by id (public)",
+        "tags": ["Campaigns"]
+      },
+      "patch": {
+        "description": "Partial update of editable fields and/or a `status` move. Only the campaign creator or a campaign manager may update; activation and `contentManagerId` assignment are manager-only. `projectId` is immutable. Status moves must follow the transition map (`draft → pending_approval → active → completed`, `active ↔ paused`, `cancelled` from any non-terminal state).",
+        "operationId": "CampaignsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Campaign ObjectId.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateCampaignDto" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "The updated campaign document." },
+          "400": {
+            "description": "Validation failed or illegal status transition."
+          },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: campaign_creator, chapter_leader, content_contributor, content_manager, digital_coordinator, program_director, system_admin."
+          },
+          "404": { "description": "No campaign with this id." }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Update a campaign",
+        "tags": ["Campaigns"]
+      },
+      "delete": {
+        "description": "Marks the campaign deleted without removing the record. Only the creator or a manager may delete.",
+        "operationId": "CampaignsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Campaign ObjectId.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "The soft-deleted campaign document." },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: campaign_creator, chapter_leader, content_contributor, content_manager, digital_coordinator, program_director, system_admin."
+          },
+          "404": { "description": "No campaign with this id." }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Soft-delete a campaign",
+        "tags": ["Campaigns"]
+      }
+    },
+    "/campaigns/{id}/submit": {
+      "post": {
+        "description": "Moves a `draft` campaign to `pending_approval`. Only the creator (or a manager) may submit. No body.",
+        "operationId": "CampaignsController_submit",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Campaign ObjectId.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "The campaign, now `pending_approval`." },
+          "400": { "description": "Campaign is not in `draft`." },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: campaign_creator, chapter_leader, content_contributor, content_manager, digital_coordinator, program_director, system_admin."
+          },
+          "404": { "description": "No campaign with this id." }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Submit a campaign for approval",
+        "tags": ["Campaigns"]
+      }
+    },
+    "/campaigns/{id}/approve": {
+      "post": {
+        "description": "Approves a `pending_approval` campaign, taking it `active`. Optionally assigns a stewarding content manager via `contentManagerId`; when omitted, the approver is recorded as the content manager.",
+        "operationId": "CampaignsController_approve",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Campaign ObjectId.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ApproveCampaignDto" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "The campaign, now `active`." },
+          "400": {
+            "description": "Campaign is not `pending_approval`, or invalid `contentManagerId`."
+          },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: content_manager, digital_coordinator, program_director, system_admin."
+          },
+          "404": { "description": "No campaign with this id." }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Approve a campaign (managers)",
+        "tags": ["Campaigns"]
+      }
+    },
+    "/campaigns/{id}/reject": {
+      "post": {
+        "description": "Bounces a `pending_approval` campaign back to `draft` for the creator to revise. No body.",
+        "operationId": "CampaignsController_reject",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Campaign ObjectId.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "The campaign, back in `draft`." },
+          "400": { "description": "Campaign is not `pending_approval`." },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: content_manager, digital_coordinator, program_director, system_admin."
+          },
+          "404": { "description": "No campaign with this id." }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Reject a campaign (managers)",
+        "tags": ["Campaigns"]
+      }
+    },
+    "/campaigns/{id}/join": {
+      "post": {
+        "description": "Adds the authenticated user to a `joinable`, `active` campaign as a participant. Any authenticated user may join; the campaign owner and existing participants cannot. The optional participant role label is passed as the `role` QUERY param (defaults to `fundraiser`). No body.",
+        "operationId": "CampaignsController_join",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Campaign ObjectId.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The campaign with the caller added to `participants`."
+          },
+          "400": {
+            "description": "Campaign is not joinable/active, caller owns it, or caller already joined."
+          },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "404": { "description": "No campaign with this id." }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Join a campaign as a co-fundraiser",
+        "tags": ["Campaigns"]
+      }
+    },
+    "/campaigns/{campaignId}/sponsorships": {
+      "get": {
+        "description": "The campaign's corporate backers as shown on its public page — only `isActive` sponsorships, newest first. No authentication required.",
+        "operationId": "CampaignSponsorshipsController_findByCampaign",
+        "parameters": [
+          {
+            "name": "campaignId",
+            "required": true,
+            "in": "path",
+            "description": "Campaign ObjectId.",
+            "schema": {
+              "example": "665f1c2ab1e2f3a4b5c6d7e8",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of the campaign's active sponsorships plus pagination metadata.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "meta"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "description": "Sponsorship document (`isActive` is always true)."
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PaginationMetaModel"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "Malformed campaign id." }
+        },
+        "summary": "List a campaign's sponsorships (public)",
+        "tags": ["Sponsorships"]
+      },
+      "post": {
+        "description": "Registers a corporate sponsor on the campaign named in the path — do NOT send `campaignId` in the body. `amount` is an optional integer in the smallest currency unit; `type` defaults to `general` and `isActive` to true, so a new sponsorship is publicly visible immediately. `createdBy` is stamped from the caller.",
+        "operationId": "CampaignSponsorshipsController_create",
+        "parameters": [
+          {
+            "name": "campaignId",
+            "required": true,
+            "in": "path",
+            "description": "Campaign ObjectId.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateSponsorshipDto" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "The created sponsorship document." },
+          "400": {
+            "description": "Validation failed (or unknown body fields present)."
+          },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: system_admin, program_director, finance_admin."
+          },
+          "404": { "description": "No campaign with this id." }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Create a sponsorship (system admin, program director, finance admin)",
+        "tags": ["Sponsorships"]
+      }
+    },
+    "/sponsorships/{id}": {
+      "patch": {
+        "description": "Partial update of the sponsor details. `campaignId` is immutable — a sponsorship stays bound to the campaign it was created against. Set `isActive: false` to hide the sponsor publicly without deleting it.",
+        "operationId": "SponsorshipsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Sponsorship ObjectId.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateSponsorshipDto" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "The updated sponsorship document." },
+          "400": {
+            "description": "Validation failed (or unknown body fields present)."
+          },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: system_admin, program_director, finance_admin."
+          },
+          "404": { "description": "No sponsorship with this id." }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Update a sponsorship (system admin, program director, finance admin)",
+        "tags": ["Sponsorships"]
+      },
+      "delete": {
+        "description": "Marks the sponsorship deleted without removing the record; it disappears from the campaign page and from every listing.",
+        "operationId": "SponsorshipsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Sponsorship ObjectId.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "The soft-deleted sponsorship document." },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: system_admin, program_director, finance_admin."
+          },
+          "404": { "description": "No sponsorship with this id." }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Soft-delete a sponsorship (system admin, program director, finance admin)",
+        "tags": ["Sponsorships"]
+      }
+    },
+    "/donations": {
+      "post": {
+        "description": "Creates a donation. Authentication is OPTIONAL: send a Bearer token to have the gift attributed to your account, or none to donate as a guest (include `donor` contact details in that case). Omit `campaignId` for an unrestricted general-fund gift. The donation is always created `pending`, and for an online gateway (e.g. `chapa`) a checkout session is opened and returned under `checkout` — redirect the donor to `checkout.checkoutUrl`. The payment-gateway webhook then settles the gift to `completed`, at which point it counts toward campaign/project totals. High-value gifts (≥ 500,000 in the smallest unit, i.e. 5,000 ETB) are charged the same way, but the webhook parks them in `manual_review` instead of settling: the funds are captured while an admin decides, and only an approval credits the totals.",
+        "operationId": "DonationsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateDonationDto" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created donation plus, for an online-gateway gift, the `checkout` session (with `checkoutUrl`)."
+          },
+          "400": {
+            "description": "Validation failed, or the referenced campaign cannot accept donations."
+          }
+        },
+        "summary": "Make a donation (auth optional)",
+        "tags": ["Donations"]
+      },
+      "get": {
+        "description": "Every donation in any status, paginated, filterable by `status`, `paymentMethod`, `campaignId`, `projectId`.",
+        "operationId": "DonationsController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "One page of donations plus pagination metadata.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "meta"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "description": "Donation document."
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PaginationMetaModel"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid filter or pagination value." },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: finance_admin, program_director, system_admin."
+          }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "List all donations (finance)",
+        "tags": ["Donations"]
+      }
+    },
+    "/donations/campaign/{campaignId}": {
+      "get": {
+        "description": "Settled (`completed`) donations for a campaign — the public donor list. Donors who chose anonymity are redacted. No authentication required.",
+        "operationId": "DonationsController_findByCampaign",
+        "parameters": [
+          {
+            "name": "campaignId",
+            "required": true,
+            "in": "path",
+            "description": "Campaign ObjectId.",
+            "schema": {
+              "example": "665f1c2ab1e2f3a4b5c6d7e8",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of the campaign's completed donations plus pagination metadata.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "meta"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "description": "Donation document (anonymous donors redacted)."
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PaginationMetaModel"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "List a campaign's donations (public)",
+        "tags": ["Donations"]
+      }
+    },
+    "/donations/me": {
+      "get": {
+        "description": "The authenticated donor's own donations, every status, newest first.",
+        "operationId": "DonationsController_findMine",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "One page of the caller's donations plus pagination metadata.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "meta"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "description": "Donation document."
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PaginationMetaModel"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "My donation history",
+        "tags": ["Donations"]
+      }
+    },
+    "/donations/review-queue": {
+      "get": {
+        "description": "High-value donations parked in `manual_review`, oldest first, awaiting an approve/reject decision.",
+        "operationId": "DonationsController_reviewQueue",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "One page of `manual_review` donations plus pagination metadata.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "meta"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "description": "Donation document (status is always `manual_review`)."
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PaginationMetaModel"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: finance_admin, program_director, system_admin."
+          }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Manual-review queue (finance)",
+        "tags": ["Donations"]
+      }
+    },
+    "/donations/{id}": {
+      "get": {
+        "operationId": "DonationsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Donation ObjectId.",
+            "schema": {
+              "example": "665f1c2ab1e2f3a4b5c6d7e8",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": { "description": "The donation document." },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: finance_admin, program_director, system_admin."
+          },
+          "404": { "description": "No donation with this id." }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Get a donation by id (finance)",
+        "tags": ["Donations"]
+      },
+      "delete": {
+        "description": "Marks the donation deleted without removing the record. Does NOT reverse campaign/project totals — use the refund endpoint for that.",
+        "operationId": "DonationsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Donation ObjectId.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "The soft-deleted donation document." },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: finance_admin, program_director, system_admin."
+          },
+          "404": { "description": "No donation with this id." }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Soft-delete a donation (finance)",
+        "tags": ["Donations"]
+      }
+    },
+    "/donations/{id}/review": {
+      "patch": {
+        "description": "Decides a donation held in `manual_review`. High-value gifts reach review already PAID, so the decision is financial: `approve: true` settles the gift to `completed` and credits the campaign/project totals; `approve: false` sends it to `refunded` (the funds are owed back to the donor — the gateway refund is not yet automated). For the rarer gift held before any charge landed, `approve: true` merely releases it to `pending` to await its gateway confirmation and `approve: false` fails it. `note` records the rationale.",
+        "operationId": "DonationsController_review",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Donation ObjectId.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ManualReviewDto" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The donation, now `completed`/`refunded` (paid gift approved/rejected) or `pending`/`failed` (unpaid gift released/rejected)."
+          },
+          "400": {
+            "description": "Donation is not in `manual_review`, or validation failed."
+          },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: finance_admin, program_director, system_admin."
+          },
+          "404": { "description": "No donation with this id." }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Decide a manual-review donation (finance)",
+        "tags": ["Donations"]
+      }
+    },
+    "/donations/{id}/refund": {
+      "post": {
+        "description": "Refunds a `completed` donation (→ `refunded`) and reverses the denormalized raised totals on its campaign and project. No body.",
+        "operationId": "DonationsController_refund",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Donation ObjectId.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "The donation, now `refunded`." },
+          "400": { "description": "Donation is not `completed`." },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: finance_admin, program_director, system_admin."
+          },
+          "404": { "description": "No donation with this id." }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Refund a donation (finance)",
+        "tags": ["Donations"]
+      }
+    },
+    "/impact-updates": {
+      "get": {
+        "description": "Paginated listing across ALL statuses (unlike the public feeds), filterable by `status`, `projectId`, `campaignId`.",
+        "operationId": "ImpactUpdatesController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "One page of impact updates plus pagination metadata.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "meta"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "description": "Impact-update document."
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PaginationMetaModel"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid filter or pagination value." },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: content_manager, digital_coordinator, program_director, system_admin."
+          }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "List impact updates, any status (managers)",
+        "tags": ["Impact Updates"]
+      },
+      "post": {
+        "description": "Creates a story/reporting post against a project (optionally linked to a campaign). Always starts in `draft`; advance it through the submit/approve workflow. `content` is markdown; up to 20 media attachments (already-uploaded URLs). `authorId` is stamped from the caller.",
+        "operationId": "ImpactUpdatesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateImpactUpdateDto" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "The created impact-update document." },
+          "400": {
+            "description": "Validation failed (or unknown body fields present)."
+          },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: content_contributor, content_manager, chapter_leader, site_engineer, project_manager, digital_coordinator, program_director, system_admin."
+          }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Create an impact update (contributors)",
+        "tags": ["Impact Updates"]
+      }
+    },
+    "/impact-updates/pending": {
+      "get": {
+        "description": "Impact updates in `submitted` status awaiting content-manager review, oldest first.",
+        "operationId": "ImpactUpdatesController_findPending",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "One page of `submitted` updates plus pagination metadata.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "meta"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "description": "Impact-update document (status is always `submitted`)."
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PaginationMetaModel"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: content_manager, digital_coordinator, program_director, system_admin."
+          }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Pending-approval queue (managers)",
+        "tags": ["Impact Updates"]
+      }
+    },
+    "/impact-updates/project/{projectId}": {
+      "get": {
+        "description": "The project's public story timeline — only `published` updates. No authentication required.",
+        "operationId": "ImpactUpdatesController_findByProject",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "Project ObjectId.",
+            "schema": {
+              "example": "665f1c2ab1e2f3a4b5c6d7e8",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of the project's published updates plus pagination metadata.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "meta"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "description": "Impact-update document (status is always `published`)."
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PaginationMetaModel"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "List a project's published updates (public)",
+        "tags": ["Impact Updates"]
+      }
+    },
+    "/impact-updates/campaign/{campaignId}": {
+      "get": {
+        "description": "The campaign's public story timeline — only `published` updates. No authentication required.",
+        "operationId": "ImpactUpdatesController_findByCampaign",
+        "parameters": [
+          {
+            "name": "campaignId",
+            "required": true,
+            "in": "path",
+            "description": "Campaign ObjectId.",
+            "schema": {
+              "example": "665f1c2ab1e2f3a4b5c6d7e8",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of the campaign's published updates plus pagination metadata.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "meta"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "description": "Impact-update document (status is always `published`)."
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PaginationMetaModel"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "List a campaign's published updates (public)",
+        "tags": ["Impact Updates"]
+      }
+    },
+    "/impact-updates/{id}": {
+      "get": {
+        "operationId": "ImpactUpdatesController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Impact-update ObjectId.",
+            "schema": {
+              "example": "665f1c2ab1e2f3a4b5c6d7e8",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": { "description": "The impact-update document." },
+          "404": { "description": "No impact update with this id." }
+        },
+        "summary": "Get an impact update by id (public)",
+        "tags": ["Impact Updates"]
+      },
+      "patch": {
+        "description": "Partial update of editable fields and/or a `status` move. Only the author or a manager may update; publishing is manager-only. `projectId` is immutable; `campaignId` may be (re)assigned. Status moves must follow the transition map (`draft → submitted → published/rejected`; `published` can be pulled back to `draft`; `rejected` can go back to `draft` or straight to `submitted`).",
+        "operationId": "ImpactUpdatesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Impact-update ObjectId.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateImpactUpdateDto" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "The updated impact-update document." },
+          "400": {
+            "description": "Validation failed or illegal status transition."
+          },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: content_contributor, content_manager, chapter_leader, site_engineer, project_manager, digital_coordinator, program_director, system_admin."
+          },
+          "404": { "description": "No impact update with this id." }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Update an impact update",
+        "tags": ["Impact Updates"]
+      },
+      "delete": {
+        "description": "Marks the update deleted without removing the record. Only the author or a manager may delete.",
+        "operationId": "ImpactUpdatesController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Impact-update ObjectId.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "The soft-deleted impact-update document." },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: content_contributor, content_manager, chapter_leader, site_engineer, project_manager, digital_coordinator, program_director, system_admin."
+          },
+          "404": { "description": "No impact update with this id." }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Soft-delete an impact update",
+        "tags": ["Impact Updates"]
+      }
+    },
+    "/impact-updates/{id}/submit": {
+      "post": {
+        "description": "Moves a `draft` update to `submitted`. Only the author (or a manager) may submit. No body.",
+        "operationId": "ImpactUpdatesController_submit",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Impact-update ObjectId.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "The update, now `submitted`." },
+          "400": { "description": "Update is not in `draft`." },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: content_contributor, content_manager, chapter_leader, site_engineer, project_manager, digital_coordinator, program_director, system_admin."
+          },
+          "404": { "description": "No impact update with this id." }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Submit an impact update for review",
+        "tags": ["Impact Updates"]
+      }
+    },
+    "/impact-updates/{id}/approve": {
+      "patch": {
+        "description": "Approves a `submitted` update, publishing it (visible on public timelines). Optional `publishedAt` (ISO 8601) back-dates or schedules the publication timestamp; when omitted the current time is stamped.",
+        "operationId": "ImpactUpdatesController_approve",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Impact-update ObjectId.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveImpactUpdateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "The update, now `published`." },
+          "400": {
+            "description": "Update is not `submitted`, or invalid `publishedAt`."
+          },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: content_manager, digital_coordinator, program_director, system_admin."
+          },
+          "404": { "description": "No impact update with this id." }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Approve & publish an impact update (managers)",
+        "tags": ["Impact Updates"]
+      }
+    },
+    "/impact-updates/{id}/reject": {
+      "patch": {
+        "description": "Rejects a `submitted` update, sending it back to the author. The optional `reason` is stored on the update (`rejectionReason`) so the author knows what to revise.",
+        "operationId": "ImpactUpdatesController_reject",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Impact-update ObjectId.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RejectImpactUpdateDto" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "The update, now `rejected`." },
+          "400": { "description": "Update is not `submitted`." },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: content_manager, digital_coordinator, program_director, system_admin."
+          },
+          "404": { "description": "No impact update with this id." }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Reject an impact update (managers)",
+        "tags": ["Impact Updates"]
+      }
+    },
+    "/certificates/me": {
+      "get": {
+        "description": "The authenticated user's certificates, newest first, paginated (default 10/page). By default only the current version of each type is returned; pass `includeSuperseded=true` to include versions that a later generation replaced. Filter to one kind with `type=fundraising|volunteer_time`.",
+        "operationId": "CertificatesController_findMine",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "One page of the caller's certificates plus pagination metadata.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "meta"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CertificateResponseDto"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PaginationMetaModel"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "List my certificates",
+        "tags": ["Certificates"]
+      }
+    },
+    "/certificates/generate": {
+      "post": {
+        "description": "Computes the caller's achievement for the requested `type` and issues a certificate — provided they meet the criteria (at least the bronze threshold: 1,000 in whole currency units raised, or 10 volunteered hours). The recipient is always the caller; there is no `userId` in the body.\n\n**Idempotent**: if your current certificate of this type already froze exactly these numbers, that same certificate is returned and nothing new is created. Once the numbers move, a new `version` is issued and the previous one is kept (marked `supersededAt`) so links you already shared keep working unchanged.\n\nOptional `campaignIds` / `from` / `to` narrow which campaigns and period are counted. New certificates are private (`isPublic: false`) — share one with `PATCH /certificates/:id/visibility`.",
+        "operationId": "CertificatesController_generate",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateCertificateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The issued certificate (or the existing one, unchanged, when nothing has moved since the last generation).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CertificateResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed, or the caller has not yet met the criteria for this certificate type (the message names the shortfall)."
+          },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Generate one of my certificates",
+        "tags": ["Certificates"]
+      }
+    },
+    "/certificates/{code}": {
+      "get": {
+        "description": "Resolves the certificate behind a share code (e.g. `DOW-FR-9F2A7C41B0`). Readable by anyone once its owner has set `isPublic`; while it is private only the owner can open it (send a Bearer token). A private certificate is reported as **404** to anyone else, so a code cannot be probed for existence. Public reads omit the owner-only fields (`recipient.id`, `isPublic`).",
+        "operationId": "CertificatesController_findByCode",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "description": "The certificate's shareable code.",
+            "schema": { "example": "DOW-FR-9F2A7C41B0", "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The certificate.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CertificateResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such code — or it is private and you are not its owner."
+          }
+        },
+        "summary": "View a certificate by its shareable code (auth optional)",
+        "tags": ["Certificates"]
+      }
+    },
+    "/certificates/{id}/visibility": {
+      "patch": {
+        "description": "Sets whether anyone holding the `certificateCode` may view this certificate. Owner-only — no internal role can flip someone else's certificate. This is the only mutable field on a certificate; the frozen metrics, title, and code never change.",
+        "operationId": "CertificatesController_setVisibility",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Certificate ObjectId.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCertificateVisibilityDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated certificate.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CertificateResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (or unknown body fields present)."
+          },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": { "description": "You are not this certificate's owner." },
+          "404": { "description": "No certificate with this id." }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Toggle my certificate's public visibility",
+        "tags": ["Certificates"]
+      }
+    },
+    "/admin/dashboard/summary": {
+      "get": {
+        "description": "Live aggregated platform overview: per-entity counts by status, total budget/funding/raised (raw sums in the smallest currency unit, across currencies), people-served figures, review backlogs, and user totals. Shape: `{ projects, campaigns, donations, impactUpdates, users, generatedAt }`.",
+        "operationId": "AdminController_summary",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The aggregated dashboard snapshot (see `DashboardSummary` in the codebase / API.md)."
+          },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: program_director, finance_admin, system_admin."
+          }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Dashboard summary",
+        "tags": ["Admin"]
+      }
+    },
+    "/admin/review-queue": {
+      "get": {
+        "description": "The moderation backlog in one call: `manual_review` donations and `submitted` impact updates, each paginated independently (the same `page`/`limit` applies to both), oldest first.",
+        "operationId": "AdminController_reviewQueue",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Two paginated lists: `donations` and `impactUpdates`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["donations", "impactUpdates"],
+                  "properties": {
+                    "donations": {
+                      "type": "object",
+                      "description": "Paginated `manual_review` donations, oldest first.",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": { "type": "object" }
+                        },
+                        "meta": {
+                          "$ref": "#/components/schemas/PaginationMetaModel"
+                        }
+                      }
+                    },
+                    "impactUpdates": {
+                      "type": "object",
+                      "description": "Paginated `submitted` impact updates, oldest first.",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": { "type": "object" }
+                        },
+                        "meta": {
+                          "$ref": "#/components/schemas/PaginationMetaModel"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: program_director, finance_admin, system_admin."
+          }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Combined review queue",
+        "tags": ["Admin"]
+      }
+    },
+    "/admin/projects": {
+      "get": {
+        "description": "Same listing as `GET /projects` but on the admin surface: any status, filterable by `status`.",
+        "operationId": "AdminController_findProjects",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "One page of projects plus pagination metadata.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "meta"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "description": "Project document."
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PaginationMetaModel"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid filter or pagination value." },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: program_director, finance_admin, system_admin."
+          }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "List all projects (oversight)",
+        "tags": ["Admin"]
+      }
+    },
+    "/admin/campaigns": {
+      "get": {
+        "description": "Every campaign in any status, filterable by `status` and/or `projectId`.",
+        "operationId": "AdminController_findCampaigns",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "One page of campaigns plus pagination metadata.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "meta"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "description": "Campaign document."
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PaginationMetaModel"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid filter or pagination value." },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: program_director, finance_admin, system_admin."
+          }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "List all campaigns (oversight)",
+        "tags": ["Admin"]
+      }
+    },
+    "/admin/donations": {
+      "get": {
+        "description": "Every donation in any status. Standard filters (`status`, `paymentMethod`, `campaignId`, `projectId`) plus oversight extras: `highValue=true` (gifts that tripped the high-value threshold, regardless of lifecycle stage) and `minAmount` (ad-hoc amount floor in the smallest currency unit).",
+        "operationId": "AdminController_findDonations",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "One page of donations plus pagination metadata.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "meta"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "description": "Donation document."
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PaginationMetaModel"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid filter or pagination value." },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: program_director, finance_admin, system_admin."
+          }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "List all donations (oversight)",
+        "tags": ["Admin"]
+      }
+    },
+    "/admin/impact-updates/pending": {
+      "get": {
+        "description": "Impact updates in `submitted` status awaiting review, oldest first.",
+        "operationId": "AdminController_findPendingImpactUpdates",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "One page of `submitted` impact updates plus pagination metadata.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "meta"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "description": "Impact-update document (status is always `submitted`)."
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PaginationMetaModel"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: program_director, finance_admin, system_admin."
+          }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Pending impact updates (oversight)",
+        "tags": ["Admin"]
+      }
+    },
+    "/admin/donations/{id}/review": {
+      "patch": {
+        "description": "Same action as `PATCH /donations/:id/review`, exposed on the admin surface. High-value gifts reach review already PAID: `approve: true` settles the donation to `completed` and credits the campaign/project totals; `approve: false` sends it to `refunded`. A gift held before any charge landed releases to `pending` (approved) or `failed` (rejected). `note` records the rationale.",
+        "operationId": "AdminController_reviewDonation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Donation ObjectId.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ManualReviewDto" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The donation, now `completed`/`refunded` (paid gift approved/rejected) or `pending`/`failed` (unpaid gift released/rejected)."
+          },
+          "400": {
+            "description": "Donation is not in `manual_review`, or validation failed."
+          },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: program_director, finance_admin, system_admin."
+          },
+          "404": { "description": "No donation with this id." }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Decide a manual-review donation",
+        "tags": ["Admin"]
+      }
+    },
+    "/admin/impact-updates/{id}/approve": {
+      "patch": {
+        "description": "Same action as `PATCH /impact-updates/:id/approve`, exposed on the admin surface. Optional `publishedAt` (ISO 8601) back-dates or schedules the publication timestamp.",
+        "operationId": "AdminController_approveImpactUpdate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Impact-update ObjectId.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveImpactUpdateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "The update, now `published`." },
+          "400": {
+            "description": "Update is not `submitted`, or invalid `publishedAt`."
+          },
+          "401": {
+            "description": "Missing, expired, or invalid Firebase ID token — or no DoW account is registered for this Firebase identity."
+          },
+          "403": {
+            "description": "Caller lacks a permitted role. Allowed: program_director, finance_admin, system_admin."
+          },
+          "404": { "description": "No impact update with this id." }
+        },
+        "security": [{ "firebase": [] }],
+        "summary": "Approve & publish an impact update",
+        "tags": ["Admin"]
+      }
+    },
+    "/payments/webhook/chapa": {
+      "post": {
+        "description": "Settlement callback posted by Chapa — NOT for frontend use. Authenticated by the `x-chapa-signature` HMAC-SHA256 header (verified over the raw body using the dashboard webhook secret hash). The transaction is then re-verified against the Chapa API before the donation is settled. Idempotent on the transaction reference.",
+        "operationId": "PaymentsController_chapaWebhook",
+        "parameters": [
+          {
+            "name": "x-chapa-signature",
+            "required": true,
+            "in": "header",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "chapa-signature",
+            "required": true,
+            "in": "header",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ChapaWebhookDto" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Webhook accepted." },
+          "401": { "description": "Missing or invalid webhook signature." }
+        },
+        "summary": "Chapa payment webhook (server-to-server)",
+        "tags": ["Payments"]
+      }
+    },
+    "/payments/webhook/zeffy": {
+      "post": {
+        "description": "Settlement callback posted by Zeffy on `payment.completed` — NOT for frontend use. Zeffy publishes no webhook signing scheme, so the caller is authenticated by the shared secret in the callback URL (`/payments/webhook/zeffy/<secret>`, constant-time compared) and the payment is then re-fetched from the Zeffy API (`GET /api/v1/payments/:id`) — that response is authoritative, never the posted body. The verified payment is correlated to a pending `zeffy` donation by amount, currency, donor email and time, because Zeffy accepts no merchant reference to echo back. Idempotent: only `pending` donations are eligible, so a redelivery settles nothing twice.",
+        "operationId": "PaymentsController_zeffyWebhook[0]",
+        "parameters": [
+          {
+            "name": "token",
+            "required": false,
+            "in": "path",
+            "description": "The `ZEFFY_WEBHOOK_SECRET` shared secret, registered as part of the callback URL in the Zeffy dashboard.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "x-zeffy-signature",
+            "required": true,
+            "in": "header",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ZeffyWebhookDto" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook accepted. Also returned when the payment matched no donation of ours."
+          },
+          "401": {
+            "description": "Missing or invalid callback secret, or the payment is unknown to our Zeffy organization."
+          }
+        },
+        "summary": "Zeffy payment webhook (server-to-server)",
+        "tags": ["Payments"]
+      }
+    },
+    "/payments/webhook/zeffy/{token}": {
+      "post": {
+        "description": "Settlement callback posted by Zeffy on `payment.completed` — NOT for frontend use. Zeffy publishes no webhook signing scheme, so the caller is authenticated by the shared secret in the callback URL (`/payments/webhook/zeffy/<secret>`, constant-time compared) and the payment is then re-fetched from the Zeffy API (`GET /api/v1/payments/:id`) — that response is authoritative, never the posted body. The verified payment is correlated to a pending `zeffy` donation by amount, currency, donor email and time, because Zeffy accepts no merchant reference to echo back. Idempotent: only `pending` donations are eligible, so a redelivery settles nothing twice.",
+        "operationId": "PaymentsController_zeffyWebhook[1]",
+        "parameters": [
+          {
+            "name": "token",
+            "required": false,
+            "in": "path",
+            "description": "The `ZEFFY_WEBHOOK_SECRET` shared secret, registered as part of the callback URL in the Zeffy dashboard.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "x-zeffy-signature",
+            "required": true,
+            "in": "header",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ZeffyWebhookDto" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook accepted. Also returned when the payment matched no donation of ours."
+          },
+          "401": {
+            "description": "Missing or invalid callback secret, or the payment is unknown to our Zeffy organization."
+          }
+        },
+        "summary": "Zeffy payment webhook (server-to-server)",
+        "tags": ["Payments"]
+      }
+    }
+  },
+  "info": {
+    "title": "Drop of Water — Backend API",
+    "description": "REST API for the Drop of Water (DoW) crowdfunding platform: water-\ninfrastructure **projects**, fundraising **campaigns**, **donations**,\n**impact updates**, **users**, an **admin** oversight surface, and push\n**notifications**.\n\n### Authentication\nMost routes require a **Firebase ID token** sent as a Bearer token:\n`Authorization: Bearer <firebaseIdToken>`. Click **Authorize** and paste\nthe raw token (no `Bearer` prefix). Routes tagged _Public_ need no token;\nthe payment webhook authenticates by gateway signature instead.\n\n### Conventions\n- All monetary amounts are integers in the **smallest currency unit**\n  (e.g. cents / Ethiopian santim). Default currency is `ETB`.\n- List endpoints are paginated via `?page=` (1-based) and `?limit=`\n  (default 10, max 100) and return a `{ data, meta }` envelope.\n- Resource ids are Mongo ObjectId strings (24 hex chars).\n- Timestamps are ISO 8601 strings.",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [
+    {
+      "name": "Users",
+      "description": "Account profiles and admin user management."
+    },
+    {
+      "name": "Projects",
+      "description": "Water-infrastructure projects and their sub-resources."
+    },
+    {
+      "name": "Campaigns",
+      "description": "Fundraising campaigns and their approval workflow."
+    },
+    {
+      "name": "Sponsorships",
+      "description": "Corporate sponsors backing a campaign."
+    },
+    {
+      "name": "Donations",
+      "description": "Gifts, the payment webhook, and finance review."
+    },
+    {
+      "name": "Impact Updates",
+      "description": "Project/campaign story posts and their approval."
+    },
+    {
+      "name": "Certificates",
+      "description": "Fundraising and volunteer-time recognition certificates."
+    },
+    {
+      "name": "Admin",
+      "description": "Cross-entity oversight dashboard and moderation."
+    },
+    {
+      "name": "Notifications",
+      "description": "Notification history and FCM device tokens."
+    },
+    { "name": "App", "description": "Service health / root." }
+  ],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "firebase": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http",
+        "description": "Firebase ID token (paste the raw token, without \"Bearer \")."
+      }
+    },
+    "schemas": {
+      "RegisterDeviceTokenDto": { "type": "object", "properties": {} },
+      "CreateUserDto": { "type": "object", "properties": {} },
+      "UpdateUserDto": { "type": "object", "properties": {} },
+      "PaginationMetaModel": {
+        "type": "object",
+        "properties": {
+          "total": { "type": "number", "example": 42 },
+          "page": { "type": "number", "example": 1 },
+          "limit": { "type": "number", "example": 10 },
+          "totalPages": { "type": "number", "example": 5 },
+          "hasNextPage": { "type": "boolean", "example": true },
+          "hasPrevPage": { "type": "boolean", "example": false }
+        },
+        "required": [
+          "total",
+          "page",
+          "limit",
+          "totalPages",
+          "hasNextPage",
+          "hasPrevPage"
+        ]
+      },
+      "AdminUpdateUserDto": { "type": "object", "properties": {} },
+      "CreateProjectDto": { "type": "object", "properties": {} },
+      "UpdateProjectDto": { "type": "object", "properties": {} },
+      "AddMilestoneDto": { "type": "object", "properties": {} },
+      "AddMilestonesDto": { "type": "object", "properties": {} },
+      "UpdateMilestoneDto": { "type": "object", "properties": {} },
+      "CostItemDto": { "type": "object", "properties": {} },
+      "CreateCostItemsDto": { "type": "object", "properties": {} },
+      "ProofOfImpactDto": { "type": "object", "properties": {} },
+      "AddProofsOfImpactDto": { "type": "object", "properties": {} },
+      "CreateCampaignDto": { "type": "object", "properties": {} },
+      "UpdateCampaignDto": { "type": "object", "properties": {} },
+      "ApproveCampaignDto": { "type": "object", "properties": {} },
+      "CreateSponsorshipDto": { "type": "object", "properties": {} },
+      "UpdateSponsorshipDto": { "type": "object", "properties": {} },
+      "CreateDonationDto": { "type": "object", "properties": {} },
+      "ManualReviewDto": { "type": "object", "properties": {} },
+      "CreateImpactUpdateDto": { "type": "object", "properties": {} },
+      "UpdateImpactUpdateDto": { "type": "object", "properties": {} },
+      "ApproveImpactUpdateDto": { "type": "object", "properties": {} },
+      "RejectImpactUpdateDto": { "type": "object", "properties": {} },
+      "CertificateRecipientDto": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "example": "665f1c2ab1e2f3a4b5c6d7e8" },
+          "name": { "type": "string", "example": "Abebe Bikila" }
+        },
+        "required": ["name"]
+      },
+      "CertificateResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "example": "665f1c2ab1e2f3a4b5c6d7e8" },
+          "type": {
+            "type": "string",
+            "enum": ["fundraising", "volunteer_time"],
+            "example": "fundraising"
+          },
+          "title": {
+            "type": "string",
+            "example": "Gold Fundraising Certificate"
+          },
+          "description": {
+            "type": "object",
+            "nullable": true,
+            "example": "Awarded to Abebe Bikila for raising 62,500.00 ETB across 3 campaigns on Drop of Water."
+          },
+          "badgeLevel": {
+            "type": "string",
+            "enum": ["bronze", "silver", "gold", "champion"],
+            "nullable": true,
+            "example": "gold"
+          },
+          "recipient": {
+            "$ref": "#/components/schemas/CertificateRecipientDto"
+          },
+          "totalAmount": { "type": "number", "example": 6250000 },
+          "totalHours": { "type": "number", "example": 0 },
+          "currency": { "type": "object", "nullable": true, "example": "ETB" },
+          "relatedCampaignIds": {
+            "example": ["665f1c2ab1e2f3a4b5c6d7e8"],
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "certificateCode": {
+            "type": "string",
+            "example": "DOW-FR-9F2A7C41B0"
+          },
+          "isPublic": { "type": "boolean", "example": false },
+          "issuedAt": {
+            "type": "string",
+            "example": "2026-08-01T09:30:00.000Z"
+          },
+          "version": { "type": "number", "example": 2 },
+          "supersededAt": {
+            "type": "object",
+            "nullable": true,
+            "example": null
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "title",
+          "recipient",
+          "totalAmount",
+          "totalHours",
+          "relatedCampaignIds",
+          "certificateCode",
+          "issuedAt",
+          "version"
+        ]
+      },
+      "GenerateCertificateDto": { "type": "object", "properties": {} },
+      "UpdateCertificateVisibilityDto": { "type": "object", "properties": {} },
+      "ChapaWebhookDto": {
+        "type": "object",
+        "properties": {
+          "event": {
+            "type": "string",
+            "description": "Chapa event name.",
+            "example": "charge.success"
+          },
+          "tx_ref": {
+            "type": "string",
+            "description": "The transaction reference we generated at checkout; correlates the callback to the pending donation.",
+            "example": "dow-3f1c9b7a-2e4d-4a11-9b0c-8f2d6e5a1c34"
+          },
+          "reference": {
+            "type": "string",
+            "description": "Chapa-side transaction reference.",
+            "example": "CHreF8n2Kd0p"
+          },
+          "status": {
+            "type": "string",
+            "description": "Advisory charge status. NOT trusted directly — the server re-verifies the transaction against the Chapa API before settling.",
+            "example": "success"
+          }
+        },
+        "required": ["tx_ref"]
+      },
+      "ZeffyWebhookPaymentDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Zeffy's payment id. Becomes the donation's `transactionId` on settlement.",
+            "example": "p1b2c3d4-e5f6-7890-abcd-ef1234567890"
+          },
+          "amount": {
+            "type": "number",
+            "description": "Total amount in cents.",
+            "example": 5000
+          },
+          "currency": {
+            "type": "string",
+            "description": "Lower-case ISO currency code.",
+            "example": "usd"
+          },
+          "status": {
+            "type": "string",
+            "description": "Advisory charge status. NOT trusted — the server re-fetches the payment from the Zeffy API before settling.",
+            "example": "succeeded"
+          },
+          "refund_status": {
+            "type": "string",
+            "description": "How much of the payment has been refunded.",
+            "example": "none"
+          },
+          "buyer": {
+            "type": "object",
+            "description": "Donor contact details as entered on the Zeffy form. Used to correlate the payment back to a pending donation.",
+            "example": {
+              "email": "jane@example.com",
+              "first_name": "Jane",
+              "last_name": "Doe"
+            }
+          }
+        },
+        "required": ["id", "amount", "currency", "status"]
+      },
+      "ZeffyWebhookDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for this webhook delivery.",
+            "example": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+          },
+          "type": {
+            "type": "string",
+            "description": "Event type. Only `payment.completed` is emitted today.",
+            "example": "payment.completed"
+          },
+          "version": {
+            "type": "number",
+            "description": "Payload schema version.",
+            "example": 1
+          },
+          "dispatchedAt": {
+            "type": "string",
+            "description": "ISO 8601 timestamp of when the event was dispatched.",
+            "example": "2026-01-15T14:32:00.000Z"
+          },
+          "data": {
+            "description": "The full payment object, identical to the `GET /api/v1/payments/:id` response.",
+            "allOf": [{ "$ref": "#/components/schemas/ZeffyWebhookPaymentDto" }]
+          }
+        },
+        "required": ["type", "data"]
+      }
+    }
+  }
+}

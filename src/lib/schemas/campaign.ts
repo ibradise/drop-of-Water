@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CAMPAIGN_STATUSES } from "@/lib/enums";
+import { CAMPAIGN_STATUSES, PROJECT_STATUSES } from "@/lib/enums";
 
 export const campaignParticipantSchema = z.object({
   _id: z.string().optional(),

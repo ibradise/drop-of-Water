@@ -17,6 +17,11 @@ export const campaignsApi = {
       .get<unknown>("/campaigns", { query: params as Record<string, unknown> | undefined })
       .then((data) => paginatedCampaign.parse(data) as Paginated<Campaign>),
 
+  // list: (params?: PaginationParams & { status?: string; projectId?: string }) =>
+  // api
+  //   .get<unknown>("/campaigns", { query: params as Record<string, unknown> | undefined })
+  //   .then((data) => data as Paginated<Campaign>),  // <-- skip .parse()
+
   active: (params?: PaginationParams) =>
     api
       .get<unknown>("/campaigns/active", { query: params as Record<string, unknown> | undefined })

@@ -13,7 +13,7 @@ const paginatedUser = paginatedSchema(userSchema);
 
 export const usersApi = {
   register: (body: RegisterUserInput) =>
-    api.post<User>("/users", body, { skipAuth: true }).then((u) => userSchema.parse(u)),
+    api.post<User>("/users", body).then((u) => userSchema.parse(u)),
   me: () => api.get<User>("/users/me").then((u) => userSchema.parse(u)),
   updateMe: (body: UpdateMeInput) =>
     api.patch<User>("/users/me", body).then((u) => userSchema.parse(u)),
