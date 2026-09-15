@@ -13,7 +13,7 @@ import { campaignsApi } from "@/lib/api/campaigns";
 import { projectsApi } from "@/lib/api/projects";
 import { ApiError } from "@/lib/api/client";
 import { useAuth } from "@/lib/auth/context";
-import { updateCampaignSchema, type UpdateCampaignInput } from "@/lib/schemas/campaign";
+import { type UpdateCampaignInput } from "@/lib/schemas/campaign";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Money } from "@/components/ui/money";
@@ -194,7 +194,6 @@ function ManageCampaign({ id }: { id: string }) {
               joinable: values.joinable,
               photos: photos.length > 0 ? photos : undefined,
             };
-            updateCampaignSchema.parse(payload);
             const updated = await campaignsApi.update(c._id, payload);
             toast.success("Saved.");
             qc.setQueryData(["campaigns", "get", c._id], updated);

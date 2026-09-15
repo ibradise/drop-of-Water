@@ -5,3 +5,5 @@ export * from "./sponsorship";
 export * from "./donation";
 export * from "./impact-update";
 export * from "./certificate";
+export * from "./notification";
+export * from "./admin";

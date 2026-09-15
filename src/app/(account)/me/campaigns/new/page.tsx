@@ -10,7 +10,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { campaignsApi } from "@/lib/api/campaigns";
 import { projectsApi } from "@/lib/api/projects";
-import { createCampaignSchema, type CreateCampaignInput } from "@/lib/schemas/campaign";
+import { type CreateCampaignInput } from "@/lib/schemas/campaign";
 import { useAuth } from "@/lib/auth/context";
 import { hasAnyRole, type Role } from "@/lib/enums";
 import { Button } from "@/components/ui/button";
@@ -120,8 +120,6 @@ export default function NewCampaignPage() {
         joinable: values.joinable,
         photos: photos.length > 0 ? photos : undefined,
       };
-      // Validate against the canonical schema before sending.
-      createCampaignSchema.parse(payload);
       return campaignsApi.create(payload);
     },
     onSuccess: (campaign) => {

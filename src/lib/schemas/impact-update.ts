@@ -9,9 +9,9 @@ export type Attachment = z.infer<typeof attachmentSchema>;
 
 export const impactUpdateSchema = z.object({
   _id: z.string(),
-  projectId: z.union([z.string(), z.any()]),
-  campaignId: z.union([z.string(), z.any()]).nullable().optional(),
-  authorId: z.union([z.string(), z.any()]).optional(),
+  projectId: z.string(),
+  campaignId: z.string().nullable(),
+  authorId: z.string(),
   title: z.string().max(200),
   content: z.string(),
   attachments: z.array(attachmentSchema).max(20),
@@ -19,7 +19,7 @@ export const impactUpdateSchema = z.object({
   publishedAt: z.string().nullable().optional(),
   rejectionReason: z.string().nullable().optional(),
   approvedBy: z.string().nullable().optional(),
-  updatedBy: z.string().optional(),
+  updatedBy: z.string(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });

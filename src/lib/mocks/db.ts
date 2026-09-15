@@ -5,7 +5,7 @@ import type { Sponsorship } from "@/lib/schemas/sponsorship";
 import type { Donation } from "@/lib/schemas/donation";
 import type { ImpactUpdate } from "@/lib/schemas/impact-update";
 import type { Certificate } from "@/lib/schemas/certificate";
-import type { NotificationItem } from "@/lib/api/notifications";
+import type { NotificationItem } from "@/lib/schemas/notification";
 
 export type Db = {
   users: Array<{
@@ -242,6 +242,7 @@ function buildDb(): Db {
       updatedBy: "u-teacher",
       createdAt: t0,
       updatedAt: t0,
+      contentManagerId: "u-manager",
     },
     {
       _id: makeId(),
@@ -261,6 +262,7 @@ function buildDb(): Db {
       updatedBy: "u-class8b",
       createdAt: t0,
       updatedAt: t0,
+      contentManagerId: "u-manager",
     },
   ];
 

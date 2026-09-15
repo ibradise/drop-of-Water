@@ -60,3 +60,9 @@ export const reviewDonationSchema = z
   })
   .strict();
 export type ReviewDonationInput = z.infer<typeof reviewDonationSchema>;
+
+export const createDonationResultSchema = z.object({
+  donation: donationSchema,
+  checkout: checkoutSchema.optional(),
+});
+export type CreateDonationResult = z.infer<typeof createDonationResultSchema>;

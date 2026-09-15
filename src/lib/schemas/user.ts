@@ -27,14 +27,28 @@ export const userSchema = z.object({
   isVerified: z.boolean(),
   isActive: z.boolean(),
   isDeleted: z.boolean().optional(),
-  profile: profileSchema.optional(),
+  profile: z.object({
+    avatarUrl: z.string().url().optional(),
+    bio: z.string().max(1000).optional(),
+    location: z.string().max(200).optional(),
+    organizationName: z.string().max(200).optional(),
+    socialLinks: z.array(z.object({
+      platform: z.string().min(1),
+      profileUrl: z.string().url(),
+      isPrimary: z.boolean(),
+    })).optional(),
+  }).optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
 export type User = z.infer<typeof userSchema>;
 
 export const socialLinksOpSchema = z.object({
-  add: z.array(socialLinkSchema).optional(),
+  add: z.array(z.object({
+    platform: z.string().min(1),
+    profileUrl: z.string().url(),
+    isPrimary: z.boolean(),
+  })).optional(),
   remove: z.array(z.number().int().nonnegative()).optional(),
 });
 
@@ -44,7 +58,17 @@ export const registerUserSchema = z
     phoneNumber: z.string().optional(),
     roles: z.array(z.enum(ROLES)).optional(),
     entityType: z.enum(ENTITY_TYPES).optional(),
-    profile: profileSchema.optional(),
+    profile: z.object({
+      avatarUrl: z.string().url().optional(),
+      bio: z.string().max(1000).optional(),
+      location: z.string().max(200).optional(),
+      organizationName: z.string().max(200).optional(),
+      socialLinks: z.array(z.object({
+        platform: z.string().min(1),
+        profileUrl: z.string().url(),
+        isPrimary: z.boolean(),
+      })).optional(),
+    }).optional(),
   })
   .strict();
 export type RegisterUserInput = z.infer<typeof registerUserSchema>;
@@ -54,15 +78,61 @@ export const updateMeSchema = z
     name: z.string().min(2).max(120).optional(),
     phoneNumber: z.string().optional(),
     entityType: z.enum(ENTITY_TYPES).optional(),
-    profile: profileSchema
-      .extend({ socialLinks: socialLinksOpSchema.optional() })
-      .partial()
-      .optional(),
+    profile: z.object({
+      avatarUrl: z.string().url().optional(),
+      bio: z.string().max(1000).optional(),
+      location: z.string().max(200).optional(),
+      organizationName: z.string().max(200).optional(),
+      socialLinks: z.array(z.object({
+        platform: z.string().min(1),
+        profileUrl: z.string().url(),
+        isPrimary: z.boolean(),
+      })).optional(),
+    })
+    .extend({
+      socialLinks: z.object({
+        add: z.array(z.object({
+          platform: z.string().min(1),
+          profileUrl: z.string().url(),
+          isPrimary: z.boolean(),
+        })).optional(),
+        remove: z.array(z.number().int().nonnegative()).optional(),
+      }).optional(),
+    })
+    .partial()
+    .optional(),
   })
   .strict();
 export type UpdateMeInput = z.infer<typeof updateMeSchema>;
 
-export const adminUpdateUserSchema = updateMeSchema.extend({
+export const adminUpdateUserSchema = z.object({
+  name: z.string().min(2).max(120).optional(),
+  phoneNumber: z.string().optional(),
+  entityType: z.enum(ENTITY_TYPES).optional(),
+  profile: z.object({
+    avatarUrl: z.string().url().optional(),
+    bio: z.string().max(1000).optional(),
+    location: z.string().max(200).optional(),
+    organizationName: z.string().max(200).optional(),
+    socialLinks: z.array(z.object({
+      platform: z.string().min(1),
+      profileUrl: z.string().url(),
+      isPrimary: z.boolean(),
+    })).optional(),
+  })
+  .extend({
+    socialLinks: z.object({
+      add: z.array(z.object({
+        platform: z.string().min(1),
+        profileUrl: z.string().url(),
+        isPrimary: z.boolean(),
+      })).optional(),
+      remove: z.array(z.number().int().nonnegative()).optional(),
+    }).optional(),
+  })
+  .partial()
+  .optional(),
+}).extend({
   roles: z.array(z.enum(ROLES)).optional(),
   isVerified: z.boolean().optional(),
   isActive: z.boolean().optional(),
