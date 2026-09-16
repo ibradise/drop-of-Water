@@ -128,8 +128,11 @@ export default function NewCampaignPage() {
       router.push(`/me/campaigns/${campaign._id}/manage`);
     },
     onError: (err) => {
+      console.error("Create campaign failed:", err);
       const msg =
-        err instanceof ApiError ? err.messages[0] : "Couldn't create your campaign.";
+        err instanceof ApiError
+          ? `[${err.statusCode}] ${err.messages[0]}`
+          : "Couldn't create your campaign. Check the console for details.";
       toast.error(msg);
     },
   });

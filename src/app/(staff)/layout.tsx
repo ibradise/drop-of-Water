@@ -4,12 +4,12 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth/context";
-import { hasAnyRole, type Role } from "@/lib/enums";
+import { hasAnyRole, ROLE_GROUPS } from "@/lib/enums";
 import { cn } from "@/lib/cn";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-const ADMIN_ROLES: Role[] = ["program_director", "finance_admin", "system_admin"];
+const ADMIN_ROLES = ROLE_GROUPS.adminDashboard;
 
 const TABS = [
   { href: "/admin", label: "Overview" },

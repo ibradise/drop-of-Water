@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth/context";
+import { hasAnyRole, ROLE_GROUPS } from "@/lib/enums";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
-import { Droplets, LogOut, User as UserIcon } from "lucide-react";
+import { Droplets, LogOut, ShieldCheck, User as UserIcon } from "lucide-react";
 
 const NAV = [
   { href: "/projects", label: "Projects" },
@@ -55,6 +56,20 @@ export function SiteHeader() {
         <div className="flex items-center gap-2">
           {state.status === "authenticated" ? (
             <>
+              {hasAnyRole(state.user.roles, ROLE_GROUPS.adminDashboard) ? (
+                <Link
+                  href="/admin"
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
+                    pathname === "/admin" || pathname.startsWith("/admin/")
+                      ? "border-sky-200 bg-sky-50 text-sky-700"
+                      : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:text-slate-900",
+                  )}
+                >
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Admin</span>
+                </Link>
+              ) : null}
               <Link
                 href="/me"
                 className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:border-slate-300 hover:text-slate-900"

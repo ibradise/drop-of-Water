@@ -28,7 +28,7 @@ export const campaignSchema = z.object({
   createdBy: z.string(),
   contentManagerId: z.string().nullable(),
   approvedBy: z.string().nullable(),
-  updatedBy: z.string(),
+  updatedBy: z.string().nullable(),
   deletedAt: z.string().nullable().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),

@@ -2,8 +2,9 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { ArrowRight, Award, Heart, Pencil, Sparkles, User as UserIcon } from "lucide-react";
+import { ArrowRight, Award, Heart, Pencil, ShieldCheck, Sparkles, User as UserIcon } from "lucide-react";
 import { useAuth } from "@/lib/auth/context";
+import { hasAnyRole, ROLE_GROUPS } from "@/lib/enums";
 import { usersApi } from "@/lib/api/users";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -110,6 +111,17 @@ export default function MePage() {
               </Button>
             </Link>
           ))}
+          {hasAnyRole(u.roles, ROLE_GROUPS.adminDashboard) ? (
+            <Link href="/admin">
+              <Button variant="outline" className="w-full justify-between">
+                <span className="flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-slate-500" />
+                  Staff tools (admin)
+                </span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Button>
+            </Link>
+          ) : null}
         </CardContent>
       </Card>
 
