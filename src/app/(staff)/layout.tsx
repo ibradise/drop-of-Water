@@ -14,8 +14,11 @@ const ADMIN_ROLES: Role[] = ["program_director", "finance_admin", "system_admin"
 const TABS = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/review-queue", label: "Review queue" },
+  { href: "/admin/projects", label: "Projects" },
+  { href: "/admin/campaigns", label: "Campaigns" },
   { href: "/admin/donations", label: "Donations" },
   { href: "/admin/impact-updates/pending", label: "Pending updates" },
+  { href: "/admin/users", label: "Users" },
 ];
 
 export default function StaffLayout({ children }: { children: ReactNode }) {

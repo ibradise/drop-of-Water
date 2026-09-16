@@ -54,8 +54,7 @@ export default function AdminDashboardPage() {
           value={s.users.active}
           sub={`of ${s.users.total} total`}
           link="/admin/users"
-          linkLabel="(coming soon)"
-          linkDisabled
+          linkLabel="Manage users"
         />
       </div>
 

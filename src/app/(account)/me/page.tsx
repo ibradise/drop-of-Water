@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { ArrowRight, Award, Heart, Sparkles, User as UserIcon } from "lucide-react";
+import { ArrowRight, Award, Heart, Pencil, Sparkles, User as UserIcon } from "lucide-react";
 import { useAuth } from "@/lib/auth/context";
 import { usersApi } from "@/lib/api/users";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { useNow } from "@/lib/use-now";
 
 const ACTIONS = [
+  { href: "/me/edit", label: "Edit your profile", icon: Pencil },
   { href: "/me/donations", label: "See your donation history", icon: Heart },
   { href: "/me/certificates", label: "Generate or share a certificate", icon: Award },
   { href: "/me/campaigns", label: "Run your own campaign", icon: Sparkles },
