@@ -201,6 +201,16 @@ export default function NewCampaignPage() {
           <CardContent className="flex flex-col gap-3">
             {projectsQ.isLoading ? (
               <div className="h-10 animate-pulse rounded bg-slate-100" />
+            ) : projectsQ.isError ? (
+              <EmptyState
+                title="Couldn't load fundable projects"
+                description="Something went wrong talking to the API."
+                action={
+                  <Button variant="outline" onClick={() => projectsQ.refetch()}>
+                    Retry
+                  </Button>
+                }
+              />
             ) : fundable.length === 0 ? (
               <EmptyState
                 title="No fundable projects"

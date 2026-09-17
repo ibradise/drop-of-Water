@@ -90,12 +90,30 @@ function Inner({ id }: { id: string }) {
   if (projectQ.isLoading)
     return <div className="h-64 animate-pulse rounded-xl bg-slate-100" />;
   if (projectQ.isError) {
+    const is404 = projectQ.error instanceof ApiError && projectQ.error.statusCode === 404;
+    const isUnexpected = !(projectQ.error instanceof ApiError);
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Project not found</CardTitle>
+          <CardTitle>
+            {is404
+              ? "Project not found"
+              : isUnexpected
+                ? "Data looked unexpected"
+                : "Couldn't load this project"}
+          </CardTitle>
+          <CardDescription>
+            {is404
+              ? "It may have been removed or the link is wrong."
+              : isUnexpected
+                ? "Please refresh; if it keeps happening, contact support."
+                : "Something went wrong talking to the API."}
+          </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => projectQ.refetch()}>
+            Retry
+          </Button>
           <Link href="/admin/projects">
             <Button variant="outline">Back</Button>
           </Link>

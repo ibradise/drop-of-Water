@@ -54,14 +54,31 @@ function ReviewInner({ id }: { id: string }) {
     return <div className="h-64 animate-pulse rounded-xl bg-slate-100" />;
   }
   if (donationQ.isError) {
+    const is404 = donationQ.error instanceof ApiError && donationQ.error.statusCode === 404;
+    const isUnexpected = !(donationQ.error instanceof ApiError);
     return (
       <div className="mx-auto max-w-md">
         <Card>
           <CardHeader>
-            <CardTitle>Couldn&apos;t load this donation</CardTitle>
-            <CardDescription>It may have been deleted.</CardDescription>
+            <CardTitle>
+              {is404
+                ? "Couldn't load this donation"
+                : isUnexpected
+                  ? "Data looked unexpected"
+                  : "Couldn't load this donation"}
+            </CardTitle>
+            <CardDescription>
+              {is404
+                ? "It may have been deleted, or it sits beyond the first page of results."
+                : isUnexpected
+                  ? "Please refresh; if it keeps happening, contact support."
+                  : "Something went wrong talking to the API."}
+            </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => donationQ.refetch()}>
+              Retry
+            </Button>
             <Link href="/admin/donations">
               <Button variant="outline">Back to donations</Button>
             </Link>

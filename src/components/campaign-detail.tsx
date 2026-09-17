@@ -53,19 +53,29 @@ export function CampaignDetail({ campaignId }: { campaignId: string }) {
 
   if (campaignQ.isError) {
     const is404 = campaignQ.error instanceof ApiError && campaignQ.error.statusCode === 404;
+    const isUnexpected = !(campaignQ.error instanceof ApiError);
     return (
       <Card>
         <CardHeader>
           <CardTitle>
-            {is404 ? "Campaign not found" : "Couldn't load this campaign"}
+            {is404
+              ? "Campaign not found"
+              : isUnexpected
+                ? "Data looked unexpected"
+                : "Couldn't load this campaign"}
           </CardTitle>
           <CardDescription>
             {is404
               ? "It may have been removed or the link is wrong."
-              : "Something went wrong talking to the API."}
+              : isUnexpected
+                ? "Please refresh; if it keeps happening, contact support."
+                : "Something went wrong talking to the API."}
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => campaignQ.refetch()}>
+            Retry
+          </Button>
           <Button variant="outline" onClick={() => router.push("/campaigns")}>
             Back to campaigns
           </Button>

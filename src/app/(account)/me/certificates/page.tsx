@@ -97,7 +97,14 @@ export default function MeCertificatesPage() {
       </div>
 
       {certsQ.isError ? (
-        <EmptyState title="Couldn't load your certificates" />
+        <EmptyState
+          title="Couldn't load your certificates"
+          action={
+            <Button variant="outline" onClick={() => certsQ.refetch()}>
+              Retry
+            </Button>
+          }
+        />
       ) : certsQ.isLoading ? (
         <div className="space-y-2">
           {Array.from({ length: 2 }, (_, i) => (

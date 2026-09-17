@@ -57,7 +57,14 @@ export default function AdminPendingUpdatesPage() {
           ))}
         </div>
       ) : q.isError ? (
-        <EmptyState title="Couldn't load pending updates" />
+        <EmptyState
+          title="Couldn't load pending updates"
+          action={
+            <Button variant="outline" onClick={() => q.refetch()}>
+              Retry
+            </Button>
+          }
+        />
       ) : !q.data ? null : q.data.data.length === 0 ? (
         <EmptyState title="No pending updates" description="The queue is clear." />
       ) : (
@@ -82,7 +89,7 @@ export default function AdminPendingUpdatesPage() {
                       size="sm"
                       className="bg-emerald-600 hover:bg-emerald-700"
                       onClick={() => approve.mutate(u._id)}
-                      isLoading={approve.isPending}
+                      isLoading={approve.isPending && approve.variables === u._id}
                     >
                       Approve
                     </Button>
@@ -95,7 +102,7 @@ export default function AdminPendingUpdatesPage() {
                           window.prompt("Rejection reason (optional, ≤1000 chars):", "") ?? "";
                         reject.mutate({ id: u._id, reason });
                       }}
-                      isLoading={reject.isPending}
+                      isLoading={reject.isPending && reject.variables?.id === u._id}
                     >
                       Reject
                     </Button>

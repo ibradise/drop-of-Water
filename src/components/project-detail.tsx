@@ -42,17 +42,29 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
 
   if (projectQ.isError) {
     const is404 = projectQ.error instanceof ApiError && projectQ.error.statusCode === 404;
+    const isUnexpected = !(projectQ.error instanceof ApiError);
     return (
       <Card>
         <CardHeader>
-          <CardTitle>{is404 ? "Project not found" : "Couldn't load this project"}</CardTitle>
+          <CardTitle>
+            {is404
+              ? "Project not found"
+              : isUnexpected
+                ? "Data looked unexpected"
+                : "Couldn't load this project"}
+          </CardTitle>
           <CardDescription>
             {is404
               ? "It may have been removed or the link is wrong."
-              : "Something went wrong talking to the API."}
+              : isUnexpected
+                ? "Please refresh; if it keeps happening, contact support."
+                : "Something went wrong talking to the API."}
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => projectQ.refetch()}>
+            Retry
+          </Button>
           <Button variant="outline" onClick={() => router.push("/projects")}>
             Back to projects
           </Button>

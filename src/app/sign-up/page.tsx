@@ -1,14 +1,15 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Link from "next/link";
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ArrowRight, Lock, Mail, User } from "lucide-react";
 import { useAuth } from "@/lib/auth/context";
+import { getSafeNext } from "@/lib/safe-next";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -25,9 +26,27 @@ const schema = z
 type Values = z.infer<typeof schema>;
 
 export default function SignUpPage() {
+  return (
+    <Suspense fallback={<div className="text-sm text-slate-500">Loading…</div>}>
+      <SignUpInner />
+    </Suspense>
+  );
+}
+
+function SignUpInner() {
   const router = useRouter();
-  const { signUpWithEmail } = useAuth();
+  const search = useSearchParams();
+  const next = getSafeNext(search.get("next"));
+  const { state, signUpWithEmail } = useAuth();
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (state.status === "authenticated") {
+      router.replace(next);
+    } else if (state.status === "needs-onboarding") {
+      router.replace(`/onboarding?next=${encodeURIComponent(next)}`);
+    }
+  }, [state, router, next]);
 
   const {
     register,
@@ -42,13 +61,17 @@ export default function SignUpPage() {
     setSubmitting(true);
     try {
       await signUpWithEmail(values.email, values.password);
-      router.push("/onboarding");
+      router.push(`/onboarding?next=${encodeURIComponent(next)}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Could not create your account.";
       toast.error(message);
       setSubmitting(false);
     }
   });
+
+  if (state.status !== "unauthenticated") {
+    return <div className="text-sm text-slate-500">Loading…</div>;
+  }
 
   return (
     <div className="mx-auto flex max-w-md flex-col gap-6">

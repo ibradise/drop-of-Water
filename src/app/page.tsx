@@ -43,6 +43,7 @@ export default function HomePage() {
     data: featured,
     isLoading: featuredLoading,
     error: featuredError,
+    refetch: refetchFeatured,
   } = useQuery({
     queryKey: ["campaigns", "active", "featured"],
     queryFn: () => campaignsApi.active({ page: 1, limit: 3 }),
@@ -52,6 +53,7 @@ export default function HomePage() {
     data: projects,
     isLoading: projectsLoading,
     error: projectsError,
+    refetch: refetchProjects,
   } = useQuery({
     queryKey: ["projects", "list", "fundable-featured"],
     queryFn: () =>
@@ -176,7 +178,12 @@ export default function HomePage() {
             <EmptyState
               icon={<TriangleAlert className="h-6 w-6" />}
               title="Couldn't load campaigns"
-              description="Something went wrong while connecting to the campaign feed. Refresh the page to try again."
+              description="Something went wrong while connecting to the campaign feed."
+              action={
+                <Button variant="outline" size="sm" onClick={() => refetchFeatured()}>
+                  Retry
+                </Button>
+              }
             />
           ) : activeCampaigns.length === 0 ? (
             <EmptyState
@@ -227,7 +234,12 @@ export default function HomePage() {
             <EmptyState
               icon={<TriangleAlert className="h-6 w-6" />}
               title="Couldn't load projects"
-              description="Something went wrong while loading fundable projects. Refresh the page to try again."
+              description="Something went wrong while loading fundable projects."
+              action={
+                <Button variant="outline" size="sm" onClick={() => refetchProjects()}>
+                  Retry
+                </Button>
+              }
             />
           ) : fundableProjects.length === 0 ? (
             <EmptyState

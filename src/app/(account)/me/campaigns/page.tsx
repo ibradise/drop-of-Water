@@ -90,7 +90,14 @@ export default function MyCampaignsPage() {
           ))}
         </div>
       ) : meQ.isError ? (
-        <EmptyState title="Couldn't load your campaigns" />
+        <EmptyState
+          title="Couldn't load your campaigns"
+          action={
+            <Button variant="outline" onClick={() => meQ.refetch()}>
+              Retry
+            </Button>
+          }
+        />
       ) : filtered.length === 0 ? (
         <EmptyState
           title="No campaigns yet"

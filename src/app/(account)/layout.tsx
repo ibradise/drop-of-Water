@@ -24,7 +24,7 @@ export default function AccountLayout({ children }: { children: ReactNode }) {
     if (state.status === "unauthenticated") {
       router.replace(`/sign-in?next=${encodeURIComponent(pathname)}`);
     } else if (state.status === "needs-onboarding") {
-      router.replace("/onboarding");
+      router.replace(`/onboarding?next=${encodeURIComponent(pathname)}`);
     }
   }, [state, router, pathname]);
 

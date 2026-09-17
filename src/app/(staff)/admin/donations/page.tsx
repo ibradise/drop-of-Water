@@ -6,6 +6,7 @@ import { useState } from "react";
 import { ChevronRight, Filter } from "lucide-react";
 import { adminApi } from "@/lib/api/admin";
 import { Card, CardContent, EmptyState } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Money } from "@/components/ui/money";
 import { PAYMENT_METHODS, type DonationStatus } from "@/lib/enums";
@@ -98,7 +99,14 @@ export default function AdminDonationsPage() {
           ))}
         </div>
       ) : q.isError ? (
-        <EmptyState title="Couldn't load donations" />
+        <EmptyState
+          title="Couldn't load donations"
+          action={
+            <Button variant="outline" onClick={() => q.refetch()}>
+              Retry
+            </Button>
+          }
+        />
       ) : !q.data ? null : q.data.data.length === 0 ? (
         <EmptyState title="No donations match the filters" />
       ) : (

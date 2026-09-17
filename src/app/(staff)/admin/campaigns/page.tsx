@@ -84,7 +84,14 @@ export default function AdminCampaignsPage() {
           ))}
         </div>
       ) : q.isError ? (
-        <EmptyState title="Couldn't load campaigns" />
+        <EmptyState
+          title="Couldn't load campaigns"
+          action={
+            <Button variant="outline" onClick={() => q.refetch()}>
+              Retry
+            </Button>
+          }
+        />
       ) : !q.data ? null : q.data.data.length === 0 ? (
         <EmptyState title="No campaigns match the filter" />
       ) : (

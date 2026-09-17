@@ -12,7 +12,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge, type Tone } from "@/components/ui/badge";
 import { Money } from "@/components/ui/money";
-import { useAuth } from "@/lib/auth/context";
 
 const BADGE_TONE: Record<"bronze" | "silver" | "gold" | "champion", Tone> = {
   bronze: "warning",
@@ -28,7 +27,6 @@ export default function PublicCertificatePage({
 }) {
   const { code } = use(params);
   const router = useRouter();
-  const { state } = useAuth();
 
   const certQ = useQuery({
     queryKey: ["certificates", "byCode", code],
@@ -47,6 +45,8 @@ export default function PublicCertificatePage({
 
   if (certQ.isError) {
     const is404 = certQ.error instanceof ApiError && certQ.error.statusCode === 404;
+    const is403 = certQ.error instanceof ApiError && certQ.error.statusCode === 403;
+    const isUnexpected = !(certQ.error instanceof ApiError);
     return (
       <div className="mx-auto max-w-xl">
         <Card>
@@ -55,21 +55,28 @@ export default function PublicCertificatePage({
               <Lock className="h-5 w-5 text-slate-500" />
             </div>
             <CardTitle>
-              {is404
-                ? state.status === "authenticated"
-                  ? "This certificate is private"
-                  : "Certificate not found"
-                : "Couldn't load this certificate"}
+              {is403
+                ? "This certificate is private"
+                : is404
+                  ? "Certificate not found"
+                  : isUnexpected
+                    ? "Data looked unexpected"
+                    : "Couldn't load this certificate"}
             </CardTitle>
             <CardDescription>
-              {is404
-                ? state.status === "authenticated"
-                  ? "The owner has not made this certificate public yet."
-                  : "It may have been removed, or the link is wrong."
-                : "Something went wrong."}
+              {is403
+                ? "The owner has not made this certificate public yet."
+                : is404
+                  ? "It may have been removed, or the link is wrong."
+                  : isUnexpected
+                    ? "Please refresh; if it keeps happening, contact support."
+                    : "Something went wrong."}
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => certQ.refetch()}>
+              Retry
+            </Button>
             <Button variant="outline" onClick={() => router.push("/")}>
               Back to home
             </Button>

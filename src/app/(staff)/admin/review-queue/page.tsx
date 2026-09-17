@@ -36,7 +36,17 @@ export default function AdminReviewQueuePage() {
   });
 
   if (queueQ.isLoading) return <div className="h-64 animate-pulse rounded-xl bg-slate-100" />;
-  if (queueQ.isError) return <EmptyState title="Couldn't load the review queue" />;
+  if (queueQ.isError)
+    return (
+      <EmptyState
+        title="Couldn't load the review queue"
+        action={
+          <Button variant="outline" onClick={() => queueQ.refetch()}>
+            Retry
+          </Button>
+        }
+      />
+    );
   if (!queueQ.data) return null;
   const donations = queueQ.data.donations.data;
   const updates = queueQ.data.impactUpdates.data;
@@ -144,7 +154,7 @@ export default function AdminReviewQueuePage() {
                         size="sm"
                         className="bg-emerald-600 hover:bg-emerald-700"
                         onClick={() => approveUpdate.mutate(u._id)}
-                        isLoading={approveUpdate.isPending}
+                        isLoading={approveUpdate.isPending && approveUpdate.variables === u._id}
                       >
                         Approve
                       </Button>
@@ -157,7 +167,7 @@ export default function AdminReviewQueuePage() {
                             window.prompt("Rejection reason (optional, ≤1000 chars):", "") ?? "";
                           rejectUpdate.mutate({ id: u._id, reason });
                         }}
-                        isLoading={rejectUpdate.isPending}
+                        isLoading={rejectUpdate.isPending && rejectUpdate.variables?.id === u._id}
                       >
                         Reject
                       </Button>

@@ -59,6 +59,7 @@ export function DonateFlow({ campaignId }: { campaignId: string }) {
   const router = useRouter();
   const { state } = useAuth();
   const isAuthed = state.status === "authenticated";
+  const isAuthUnknown = state.status === "loading";
   const [state_, setState] = useState<"idle" | "submitting" | "awaitingCheckout">("idle");
   const [preset, setPreset] = useState<number | null>(500);
   const [amountInput, setAmountInput] = useState<string>("500");
@@ -161,17 +162,29 @@ export function DonateFlow({ campaignId }: { campaignId: string }) {
 
   if (campaignQ.isError) {
     const is404 = campaignQ.error instanceof ApiError && campaignQ.error.statusCode === 404;
+    const isUnexpected = !(campaignQ.error instanceof ApiError);
     return (
       <Card>
         <CardHeader>
-          <CardTitle>{is404 ? "Campaign not found" : "Couldn't load this campaign"}</CardTitle>
+          <CardTitle>
+            {is404
+              ? "Campaign not found"
+              : isUnexpected
+                ? "Data looked unexpected"
+                : "Couldn't load this campaign"}
+          </CardTitle>
           <CardDescription>
             {is404
               ? "It may have been removed or the link is wrong."
-              : "Something went wrong talking to the API."}
+              : isUnexpected
+                ? "Please refresh; if it keeps happening, contact support."
+                : "Something went wrong talking to the API."}
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => campaignQ.refetch()}>
+            Retry
+          </Button>
           <Link href="/campaigns">
             <Button variant="outline">Back to campaigns</Button>
           </Link>
@@ -184,7 +197,7 @@ export function DonateFlow({ campaignId }: { campaignId: string }) {
   if (!campaign) return null;
   const reviewThresholdEtb = HIGH_VALUE_DONATION_THRESHOLD / 100;
   const willTriggerReview = currentAmount >= reviewThresholdEtb;
-  const disabled = state_ !== "idle";
+  const disabled = state_ !== "idle" || isAuthUnknown;
 
   return (
     <div className="grid gap-8 lg:grid-cols-[3fr_2fr]">
@@ -313,7 +326,7 @@ export function DonateFlow({ campaignId }: { campaignId: string }) {
             </CardContent>
           </Card>
 
-          {!isAuthed ? (
+          {!isAuthed && !isAuthUnknown ? (
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Your details</CardTitle>

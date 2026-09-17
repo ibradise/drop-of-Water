@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { ArrowRight, Building2, Globe, MapPin, MessageSquare, User } from "lucide-react";
 import { useAuth } from "@/lib/auth/context";
+import { getSafeNext } from "@/lib/safe-next";
 import { usersApi } from "@/lib/api/users";
 import type { RegisterUserInput } from "@/lib/schemas/user";
 import { Button } from "@/components/ui/button";
@@ -47,17 +48,27 @@ const formSchema = z
 type FormValues = z.infer<typeof formSchema>;
 
 export default function OnboardingPage() {
+  return (
+    <Suspense fallback={<div className="text-sm text-slate-500">Loading…</div>}>
+      <OnboardingInner />
+    </Suspense>
+  );
+}
+
+function OnboardingInner() {
   const router = useRouter();
+  const search = useSearchParams();
+  const next = getSafeNext(search.get("next"));
   const { state, signOut, refreshDowProfile } = useAuth();
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (state.status === "unauthenticated") {
-      router.replace("/sign-in?next=/onboarding");
+      router.replace(`/sign-in?next=${encodeURIComponent(next)}`);
     } else if (state.status === "authenticated") {
-      router.replace("/me");
+      router.replace(next);
     }
-  }, [state, router]);
+  }, [state, router, next]);
 
   const {
     register,
@@ -111,7 +122,7 @@ export default function OnboardingPage() {
       await usersApi.register(payload);
       await refreshDowProfile();
       toast.success("Welcome to Drop of Water.");
-      router.push("/me");
+      router.push(next);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Could not create your profile.";
       toast.error(message);

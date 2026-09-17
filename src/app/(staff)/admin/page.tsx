@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowRight, Droplets, FileText, Heart, TrendingUp, Users } from "lucide-react";
 import { adminApi } from "@/lib/api/admin";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, EmptyState } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Money } from "@/components/ui/money";
 
@@ -18,7 +19,16 @@ export default function AdminDashboardPage() {
     return <div className="h-64 animate-pulse rounded-2xl bg-slate-100" />;
   }
   if (summaryQ.isError) {
-    return <EmptyState title="Couldn't load the dashboard" />;
+    return (
+      <EmptyState
+        title="Couldn't load the dashboard"
+        action={
+          <Button variant="outline" onClick={() => summaryQ.refetch()}>
+            Retry
+          </Button>
+        }
+      />
+    );
   }
   const s = summaryQ.data;
   if (!s) return null;

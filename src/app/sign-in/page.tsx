@@ -5,10 +5,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Link from "next/link";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ArrowRight, Lock, Mail, Sparkles } from "lucide-react";
 import { useAuth } from "@/lib/auth/context";
+import { getSafeNext } from "@/lib/safe-next";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -29,9 +30,17 @@ export default function SignInPage() {
 function SignInInner() {
   const router = useRouter();
   const search = useSearchParams();
-  const next = search.get("next") ?? "/me";
-  const { signInWithEmail, signInWithGoogle, devSignIn, isMockMode } = useAuth();
+  const next = getSafeNext(search.get("next"));
+  const { state, signInWithEmail, signInWithGoogle, devSignIn, isMockMode } = useAuth();
   const [submitting, setSubmitting] = useState<null | "email" | "google">(null);
+
+  useEffect(() => {
+    if (state.status === "authenticated") {
+      router.replace(next);
+    } else if (state.status === "needs-onboarding") {
+      router.replace(`/onboarding?next=${encodeURIComponent(next)}`);
+    }
+  }, [state, router, next]);
 
   const {
     register,
@@ -77,6 +86,10 @@ function SignInInner() {
       setSubmitting(null);
     }
   };
+
+  if (state.status !== "unauthenticated") {
+    return <div className="text-sm text-slate-500">Loading…</div>;
+  }
 
   return (
     <div className="mx-auto flex max-w-md flex-col gap-6">
