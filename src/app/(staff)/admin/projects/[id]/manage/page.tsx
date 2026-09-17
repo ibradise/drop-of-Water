@@ -37,6 +37,9 @@ function Inner({ id }: { id: string }) {
     onSuccess: () => {
       toast.success("Milestone added.");
       qc.invalidateQueries({ queryKey: ["projects", "get", id] });
+      qc.invalidateQueries({ queryKey: ["projects", "list"] });
+      qc.invalidateQueries({ queryKey: ["admin", "projects"] });
+      qc.invalidateQueries({ queryKey: ["admin", "dashboard"] });
       setNewMilestone({ title: "", description: "" });
     },
     onError: (e) => toast.error(e instanceof ApiError ? e.messages[0] : "Couldn't add."),
@@ -46,6 +49,9 @@ function Inner({ id }: { id: string }) {
     onSuccess: () => {
       toast.success("Milestone removed.");
       qc.invalidateQueries({ queryKey: ["projects", "get", id] });
+      qc.invalidateQueries({ queryKey: ["projects", "list"] });
+      qc.invalidateQueries({ queryKey: ["admin", "projects"] });
+      qc.invalidateQueries({ queryKey: ["admin", "dashboard"] });
     },
     onError: () => toast.error("Couldn't remove."),
   });
@@ -56,6 +62,9 @@ function Inner({ id }: { id: string }) {
     onSuccess: () => {
       toast.success("Cost item added.");
       qc.invalidateQueries({ queryKey: ["projects", "get", id] });
+      qc.invalidateQueries({ queryKey: ["projects", "list"] });
+      qc.invalidateQueries({ queryKey: ["admin", "projects"] });
+      qc.invalidateQueries({ queryKey: ["admin", "dashboard"] });
       setNewCostItem({ item: "", amount: 0 });
     },
     onError: (e) => toast.error(e instanceof ApiError ? e.messages[0] : "Couldn't add."),
@@ -66,6 +75,9 @@ function Inner({ id }: { id: string }) {
     onSuccess: () => {
       toast.success("Photos added.");
       qc.invalidateQueries({ queryKey: ["projects", "get", id] });
+      qc.invalidateQueries({ queryKey: ["projects", "list"] });
+      qc.invalidateQueries({ queryKey: ["admin", "projects"] });
+      qc.invalidateQueries({ queryKey: ["admin", "dashboard"] });
       setNewPhotos("");
     },
     onError: () => toast.error("Couldn't add photos."),
@@ -77,6 +89,9 @@ function Inner({ id }: { id: string }) {
     onSuccess: () => {
       toast.success("Proofs added.");
       qc.invalidateQueries({ queryKey: ["projects", "get", id] });
+      qc.invalidateQueries({ queryKey: ["projects", "list"] });
+      qc.invalidateQueries({ queryKey: ["admin", "projects"] });
+      qc.invalidateQueries({ queryKey: ["admin", "dashboard"] });
       setNewProofs("");
     },
     onError: () => toast.error("Couldn't add proofs."),

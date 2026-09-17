@@ -42,6 +42,9 @@ function ReviewInner({ id }: { id: string }) {
       qc.invalidateQueries({ queryKey: ["admin", "donations"] });
       qc.invalidateQueries({ queryKey: ["admin", "review-queue"] });
       qc.invalidateQueries({ queryKey: ["admin", "dashboard"] });
+      qc.invalidateQueries({ queryKey: ["donations"] });
+      qc.invalidateQueries({ queryKey: ["campaigns"] });
+      qc.invalidateQueries({ queryKey: ["projects"] });
       router.push("/admin/donations");
     },
     onError: (err) => {

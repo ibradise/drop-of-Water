@@ -22,6 +22,7 @@ export default function AdminReviewQueuePage() {
     onSuccess: () => {
       toast.success("Published.");
       qc.invalidateQueries({ queryKey: ["admin", "review-queue"] });
+      qc.invalidateQueries({ queryKey: ["impact-updates"] });
     },
     onError: () => toast.error("Couldn't approve."),
   });
@@ -31,6 +32,7 @@ export default function AdminReviewQueuePage() {
     onSuccess: () => {
       toast.success("Rejected.");
       qc.invalidateQueries({ queryKey: ["admin", "review-queue"] });
+      qc.invalidateQueries({ queryKey: ["impact-updates"] });
     },
     onError: () => toast.error("Couldn't reject."),
   });

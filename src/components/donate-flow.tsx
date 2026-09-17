@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -57,6 +57,7 @@ type FormValues = z.infer<typeof formSchema>;
 
 export function DonateFlow({ campaignId }: { campaignId: string }) {
   const router = useRouter();
+  const qc = useQueryClient();
   const { state } = useAuth();
   const isAuthed = state.status === "authenticated";
   const isAuthUnknown = state.status === "loading";
@@ -120,6 +121,8 @@ export function DonateFlow({ campaignId }: { campaignId: string }) {
     },
     onSuccess: (data) => {
       setState("awaitingCheckout");
+      qc.invalidateQueries({ queryKey: ["campaigns"] });
+      qc.invalidateQueries({ queryKey: ["donations"] });
       const url = data.checkout?.checkoutUrl;
       if (url) {
         window.location.assign(url);

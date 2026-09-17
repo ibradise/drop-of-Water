@@ -25,6 +25,7 @@ export default function AdminPendingUpdatesPage() {
       toast.success("Published.");
       qc.invalidateQueries({ queryKey: ["admin", "impact-updates"] });
       qc.invalidateQueries({ queryKey: ["admin", "review-queue"] });
+      qc.invalidateQueries({ queryKey: ["impact-updates"] });
     },
     onError: () => toast.error("Couldn't approve."),
   });
@@ -35,6 +36,7 @@ export default function AdminPendingUpdatesPage() {
       toast.success("Rejected.");
       qc.invalidateQueries({ queryKey: ["admin", "impact-updates"] });
       qc.invalidateQueries({ queryKey: ["admin", "review-queue"] });
+      qc.invalidateQueries({ queryKey: ["impact-updates"] });
     },
     onError: () => toast.error("Couldn't reject."),
   });

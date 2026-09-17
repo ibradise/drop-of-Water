@@ -172,10 +172,28 @@ function ManageCampaign({ id }: { id: string }) {
       </Card>
 
       {canSubmit ? (
-        <SubmitPanel id={c._id} onSubmitted={() => qc.invalidateQueries({ queryKey: ["campaigns", "get", id] })} />
+        <SubmitPanel
+          id={c._id}
+          onSubmitted={() => {
+            qc.invalidateQueries({ queryKey: ["campaigns", "get", id] });
+            qc.invalidateQueries({ queryKey: ["campaigns", "mine"] });
+            qc.invalidateQueries({ queryKey: ["admin", "campaigns"] });
+            qc.invalidateQueries({ queryKey: ["admin", "review-queue"] });
+            qc.invalidateQueries({ queryKey: ["admin", "dashboard"] });
+          }}
+        />
       ) : null}
       {canJoin ? (
-        <JoinPanel id={c._id} role={joinRole} setRole={setJoinRole} onJoined={() => qc.invalidateQueries({ queryKey: ["campaigns", "get", id] })} />
+        <JoinPanel
+          id={c._id}
+          role={joinRole}
+          setRole={setJoinRole}
+          onJoined={() => {
+            qc.invalidateQueries({ queryKey: ["campaigns", "get", id] });
+            qc.invalidateQueries({ queryKey: ["campaigns", "mine"] });
+            qc.invalidateQueries({ queryKey: ["campaigns", "list"] });
+          }}
+        />
       ) : null}
       {canEdit ? (
         <EditPanel
@@ -212,6 +230,9 @@ function ManageCampaign({ id }: { id: string }) {
             toast.success("Saved.");
             qc.setQueryData(["campaigns", "get", c._id], updated);
             qc.invalidateQueries({ queryKey: ["campaigns"] });
+            qc.invalidateQueries({ queryKey: ["admin", "campaigns"] });
+            qc.invalidateQueries({ queryKey: ["admin", "review-queue"] });
+            qc.invalidateQueries({ queryKey: ["admin", "dashboard"] });
             setEditing(false);
           }}
         />
@@ -254,6 +275,9 @@ function ManageCampaign({ id }: { id: string }) {
           id={c._id}
           onDeleted={() => {
             qc.invalidateQueries({ queryKey: ["campaigns"] });
+            qc.invalidateQueries({ queryKey: ["admin", "campaigns"] });
+            qc.invalidateQueries({ queryKey: ["admin", "review-queue"] });
+            qc.invalidateQueries({ queryKey: ["admin", "dashboard"] });
             router.push("/me/campaigns");
           }}
         />

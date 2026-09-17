@@ -35,6 +35,7 @@ export default function AdminCampaignsPage() {
       qc.invalidateQueries({ queryKey: ["admin", "campaigns"] });
       qc.invalidateQueries({ queryKey: ["admin", "dashboard"] });
       qc.invalidateQueries({ queryKey: ["admin", "review-queue"] });
+      qc.invalidateQueries({ queryKey: ["campaigns"] });
     },
     onError: () => toast.error("Couldn't approve campaign."),
   });
@@ -46,6 +47,7 @@ export default function AdminCampaignsPage() {
       qc.invalidateQueries({ queryKey: ["admin", "campaigns"] });
       qc.invalidateQueries({ queryKey: ["admin", "dashboard"] });
       qc.invalidateQueries({ queryKey: ["admin", "review-queue"] });
+      qc.invalidateQueries({ queryKey: ["campaigns"] });
     },
     onError: () => toast.error("Couldn't reject campaign."),
   });
