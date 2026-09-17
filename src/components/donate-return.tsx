@@ -4,8 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AlertTriangle, CheckCircle2, XCircle, Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
 import { donationsApi } from "@/lib/api/donations";
+import type { Donation } from "@/lib/schemas/donation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Money } from "@/components/ui/money";
@@ -21,30 +21,41 @@ function statusFromParams(raw: string | null): Status {
   return "pending";
 }
 
+function matchDonation(
+  txRef: string,
+  donations: Donation[] | undefined,
+): Donation | undefined {
+  if (txRef.length === 0 || !donations) return undefined;
+  return donations.find((d) => d.transactionId && d.transactionId === txRef);
+}
+
+function settledFromMatch(initial: Status, match: Donation | undefined): Status {
+  if (initial !== "pending" || !match) return initial;
+  if (match.status === "completed") return "completed";
+  if (match.status === "manual_review") return "manual_review";
+  if (match.status === "failed") return "failed";
+  return initial;
+}
+
 export function DonateReturn({ campaignId }: { campaignId: string }) {
   const search = useSearchParams();
   const txRef = search.get("tx_ref") ?? "";
   const initialStatus = statusFromParams(search.get("status"));
   const isManual = initialStatus === "manual_review";
 
-  const [settled] = useState<Status>(initialStatus);
-  const [pollCount, setPollCount] = useState(0);
-
-  useQuery({
+  const pollQ = useQuery({
     queryKey: ["donations", "campaign", campaignId, "poll"],
     queryFn: () => donationsApi.forCampaign(campaignId, { page: 1, limit: 50 }),
-    refetchInterval: () => {
-      if (pollCount > 20) return false;
+    refetchInterval: (query) => {
+      if (query.state.dataUpdateCount >= 20) return false;
+      const match = matchDonation(txRef, query.state.data?.data);
+      if (match && match.status !== "pending") return false;
       return 2_000;
     },
-    enabled: !isManual && settled === "pending",
+    enabled: !isManual && initialStatus === "pending" && txRef.length > 0,
   });
 
-  useEffect(() => {
-    if (settled !== "pending") return;
-    const id = setInterval(() => setPollCount((c) => c + 1), 2_000);
-    return () => clearInterval(id);
-  }, [settled]);
+  const settled = settledFromMatch(initialStatus, matchDonation(txRef, pollQ.data?.data));
 
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-6">
