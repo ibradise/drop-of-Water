@@ -1,7 +1,17 @@
+"use client";
+
 import Link from "next/link";
 import { Droplets } from "lucide-react";
+import { useAuth } from "@/lib/auth/context";
+import { hasAnyRole, ROLE_GROUPS } from "@/lib/enums";
+import pkg from "../../package.json";
 
 export function SiteFooter() {
+  const { state } = useAuth();
+  const isAuthed = state.status === "authenticated";
+  const isCreator =
+    isAuthed && hasAnyRole(state.user.roles, ROLE_GROUPS.campaignCreators);
+
   return (
     <footer className="mt-24 border-t border-slate-200/60 bg-white">
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
@@ -28,27 +38,35 @@ export function SiteFooter() {
               { href: "/certificates", label: "Certificates" },
             ]}
           />
-          <FooterCol
-            title="Your account"
-            links={[
-              { href: "/me", label: "Profile" },
-              { href: "/me/donations", label: "My donations" },
-              { href: "/me/certificates", label: "My certificates" },
-              { href: "/me/campaigns", label: "My campaigns" },
-            ]}
-          />
+          {isAuthed ? (
+            <FooterCol
+              title="Your account"
+              links={[
+                { href: "/me", label: "Profile" },
+                { href: "/me/donations", label: "My donations" },
+                { href: "/me/certificates", label: "My certificates" },
+                { href: "/me/campaigns", label: "My campaigns" },
+              ]}
+            />
+          ) : null}
           <FooterCol
             title="Get involved"
             links={[
-              { href: "/sign-up", label: "Create an account" },
-              { href: "/sign-in", label: "Sign in" },
-              { href: "/me/campaigns/new", label: "Start a campaign" },
+              ...(!isAuthed
+                ? [
+                    { href: "/sign-up", label: "Create an account" },
+                    { href: "/sign-in", label: "Sign in" },
+                  ]
+                : []),
+              ...(!isAuthed || isCreator
+                ? [{ href: "/me/campaigns/new", label: "Start a campaign" }]
+                : []),
             ]}
           />
         </div>
         <div className="mt-10 flex flex-col items-start justify-between gap-3 border-t border-slate-100 pt-6 text-xs text-slate-500 sm:flex-row sm:items-center">
           <p>&copy; {new Date().getFullYear()} Drop of Water. Clean water, funded together.</p>
-          <p className="font-mono">v0.1 · demo build</p>
+          <p className="font-mono">v{pkg.version}</p>
         </div>
       </div>
     </footer>

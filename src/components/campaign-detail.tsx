@@ -149,6 +149,9 @@ export function CampaignDetail({ campaignId }: { campaignId: string }) {
         donations={donors}
         currency={campaign.currency}
         totalCount={donorCount}
+        isLoading={donorsQ.isLoading}
+        isError={donorsQ.isError}
+        onRetry={() => donorsQ.refetch()}
       />
 
       {updates.length > 0 ? (

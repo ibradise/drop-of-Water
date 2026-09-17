@@ -153,6 +153,9 @@ export function CampaignDonors({
   donations,
   currency,
   totalCount,
+  isLoading = false,
+  isError = false,
+  onRetry,
 }: {
   donations: Array<{
     _id: string;
@@ -163,7 +166,41 @@ export function CampaignDonors({
   }>;
   currency: string;
   totalCount: number;
+  isLoading?: boolean;
+  isError?: boolean;
+  onRetry?: () => void;
 }) {
+  if (isLoading) {
+    return (
+      <section>
+        <h2 className="mb-3 text-xl font-semibold tracking-tight text-slate-900">
+          Recent donors
+        </h2>
+        <div className="space-y-2">
+          {Array.from({ length: 3 }, (_, i) => (
+            <div key={i} className="h-12 animate-pulse rounded-lg bg-slate-100" />
+          ))}
+        </div>
+      </section>
+    );
+  }
+  if (isError) {
+    return (
+      <section>
+        <h2 className="mb-3 text-xl font-semibold tracking-tight text-slate-900">
+          Recent donors
+        </h2>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-sm text-slate-500">Couldn&apos;t load donors.</p>
+          {onRetry ? (
+            <Button variant="outline" size="sm" onClick={onRetry}>
+              Retry
+            </Button>
+          ) : null}
+        </div>
+      </section>
+    );
+  }
   if (donations.length === 0) {
     return (
       <section>

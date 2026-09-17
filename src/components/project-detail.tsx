@@ -285,7 +285,20 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
 
       <section>
         <h2 className="mb-3 text-xl font-semibold text-slate-900">Campaigns</h2>
-        {campaigns.length === 0 ? (
+        {campaignsQ.isLoading ? (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {Array.from({ length: 2 }, (_, i) => (
+              <div key={i} className="h-40 animate-pulse rounded-xl bg-slate-100" />
+            ))}
+          </div>
+        ) : campaignsQ.isError ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm text-slate-500">Couldn&apos;t load campaigns.</p>
+            <Button variant="outline" size="sm" onClick={() => campaignsQ.refetch()}>
+              Retry
+            </Button>
+          </div>
+        ) : campaigns.length === 0 ? (
           <p className="text-sm text-slate-500">
             No campaigns yet for this project. Check back soon.
           </p>

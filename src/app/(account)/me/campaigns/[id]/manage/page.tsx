@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -61,6 +61,7 @@ function ManageCampaign({ id }: { id: string }) {
   const campaignQ = useQuery({
     queryKey: ["campaigns", "get", id],
     queryFn: () => campaignsApi.get(id),
+    enabled: state.status === "authenticated",
   });
 
   const projectQ = useQuery({
@@ -69,16 +70,16 @@ function ManageCampaign({ id }: { id: string }) {
     enabled: campaignQ.isSuccess,
   });
 
-  if (state.status === "loading") {
+  useEffect(() => {
+    if (state.status === "unauthenticated") {
+      router.replace(`/sign-in?next=/me/campaigns/${id}/manage`);
+    } else if (state.status === "needs-onboarding") {
+      router.replace(`/onboarding?next=/me/campaigns/${id}/manage`);
+    }
+  }, [state, router, id]);
+
+  if (state.status !== "authenticated") {
     return <div className="text-sm text-slate-500">Loading…</div>;
-  }
-  if (state.status === "unauthenticated") {
-    router.replace(`/sign-in?next=/me/campaigns/${id}/manage`);
-    return <div className="text-sm text-slate-500">Redirecting…</div>;
-  }
-  if (state.status === "needs-onboarding") {
-    router.replace("/onboarding");
-    return <div className="text-sm text-slate-500">Redirecting…</div>;
   }
   const me = state.user;
   const userId = me.id;

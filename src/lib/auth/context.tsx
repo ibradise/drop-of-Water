@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   GoogleAuthProvider,
   onAuthStateChanged,
@@ -80,6 +81,7 @@ function makeMockFirebaseUser(): FirebaseUser {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const isMockMode = process.env.NEXT_PUBLIC_API_MOCK === "true";
   const firebaseConfigured = isFirebaseConfigured();
+  const qc = useQueryClient();
   const [state, setState] = useState<AuthState>(() => {
     if (isMockMode) return { status: "loading" };
     return firebaseConfigured ? { status: "loading" } : { status: "unauthenticated" };
@@ -230,13 +232,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem(MOCK_NAME_KEY);
         localStorage.removeItem(MOCK_UID_KEY);
       }
+      qc.clear();
       setState({ status: "unauthenticated" });
       return;
     }
     const auth = getFirebaseAuth();
     if (auth) await firebaseSignOut(auth);
+    qc.clear();
     setState({ status: "unauthenticated" });
-  }, [isMockMode]);
+  }, [isMockMode, qc]);
 
   const resetPassword = useCallback(
     async (email: string) => {

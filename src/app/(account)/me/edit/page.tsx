@@ -106,12 +106,27 @@ export default function EditProfilePage() {
     },
   });
 
+  if (state.status !== "authenticated") {
+    return <div className="text-sm text-slate-500">Loading…</div>;
+  }
+
   if (meQ.isLoading) {
     return <div className="text-sm text-slate-500">Loading your profile…</div>;
   }
 
-  if (!meQ.data) {
-    return <div className="text-sm text-slate-500">Could not load your profile.</div>;
+  if (meQ.isError || !meQ.data) {
+    return (
+      <div className="flex flex-col items-start gap-2">
+        <div className="text-sm text-slate-500">Could not load your profile.</div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => meQ.refetch()}
+        >
+          Retry
+        </Button>
+      </div>
+    );
   }
 
   return (

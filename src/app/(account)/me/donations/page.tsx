@@ -130,11 +130,12 @@ export default function MeDonationsPage() {
 }
 
 function CampaignLink({ id }: { id: string }) {
-  const { data } = useQuery({
+  const { data, isError } = useQuery({
     queryKey: ["campaigns", "get", id, "title"],
     queryFn: () => campaignsApi.get(id),
     retry: 1,
   });
+  if (isError) return <span className="font-medium text-slate-500">Unknown campaign</span>;
   return (
     <Link
       href={`/campaigns/${id}`}
