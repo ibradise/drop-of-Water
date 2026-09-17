@@ -8,6 +8,8 @@ import { projectsApi } from "@/lib/api/projects";
 import { donationsApi } from "@/lib/api/donations";
 import { impactUpdatesApi } from "@/lib/api/impact-updates";
 import { ApiError } from "@/lib/api/client";
+import { useAuth } from "@/lib/auth/context";
+import { hasAnyRole, ROLE_GROUPS } from "@/lib/enums";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Money } from "@/components/ui/money";
@@ -24,6 +26,7 @@ import { useRouter } from "next/navigation";
 
 export function CampaignDetail({ campaignId }: { campaignId: string }) {
   const router = useRouter();
+  const { state } = useAuth();
 
   const campaignQ = useQuery({
     queryKey: ["campaigns", "get", campaignId, { sponsors: true }],
@@ -86,6 +89,34 @@ export function CampaignDetail({ campaignId }: { campaignId: string }) {
 
   const campaign = campaignQ.data;
   if (!campaign) return null;
+
+  const isPrivateStatus = campaign.status === "draft" || campaign.status === "pending_approval";
+  if (isPrivateStatus) {
+    const isAuthed = state.status === "authenticated";
+    const canViewPrivate =
+      isAuthed && (campaign.createdBy === state.user.id ||
+        hasAnyRole(state.user.roles, ROLE_GROUPS.adminDashboard));
+    if (!canViewPrivate) {
+      if (state.status === "loading") return <CampaignDetailSkeleton />;
+      return (
+        <Card>
+          <CardHeader>
+            <CardTitle>This campaign isn&apos;t public yet</CardTitle>
+            <CardDescription>
+              It&apos;s still in &ldquo;{campaign.status.replace(/_/g, " ")}&rdquo; status and will
+              be visible to everyone once it goes live.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => router.push("/campaigns")}>
+              Back to campaigns
+            </Button>
+          </CardContent>
+        </Card>
+      );
+    }
+  }
+
   const sponsors = campaign.sponsorships ?? [];
   const project = projectQ.data;
   const donors = donorsQ.data?.data ?? [];

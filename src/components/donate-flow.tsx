@@ -198,6 +198,26 @@ export function DonateFlow({ campaignId }: { campaignId: string }) {
 
   const campaign = campaignQ.data;
   if (!campaign) return null;
+
+  if (campaign.status !== "active") {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>This campaign can&apos;t accept donations yet</CardTitle>
+          <CardDescription>
+            It&apos;s still in &ldquo;{campaign.status.replace(/_/g, " ")}&rdquo; status. Check
+            back once it goes live.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-2">
+          <Link href={`/campaigns/${campaignId}`}>
+            <Button variant="outline">Back to campaign</Button>
+          </Link>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const reviewThresholdEtb = HIGH_VALUE_DONATION_THRESHOLD / 100;
   const willTriggerReview = currentAmount >= reviewThresholdEtb;
   const disabled = state_ !== "idle" || isAuthUnknown;

@@ -12,6 +12,11 @@ import { StatusFilter } from "@/components/status-filter";
 import { EmptyState } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
+const PUBLIC_STATUS_OPTIONS = CAMPAIGN_STATUSES.filter(
+  (s) => s !== "draft" && s !== "pending_approval",
+);
+const HIDDEN_PUBLIC_STATUSES: readonly CampaignStatus[] = ["draft", "pending_approval"];
+
 export function CampaignsList({ initialStatus }: { initialStatus: CampaignStatus | null }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -27,6 +32,10 @@ export function CampaignsList({ initialStatus }: { initialStatus: CampaignStatus
   const items = query.data?.data ?? [];
   const meta = query.data?.meta;
 
+  const visibleItems = items.filter((c) => !HIDDEN_PUBLIC_STATUSES.includes(c.status));
+  const hiddenOnPage = items.length - visibleItems.length;
+  const shownTotal = meta ? Math.max(0, meta.total - hiddenOnPage) : undefined;
+
   const onStatusChange = (next: CampaignStatus | null) => {
     setStatus(next);
     setPage(1);
@@ -37,18 +46,18 @@ export function CampaignsList({ initialStatus }: { initialStatus: CampaignStatus
   };
 
   const showEmpty = useMemo(
-    () => !query.isLoading && !query.isError && items.length === 0,
-    [query.isLoading, query.isError, items.length],
+    () => !query.isLoading && !query.isError && visibleItems.length === 0,
+    [query.isLoading, query.isError, visibleItems.length],
   );
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <StatusFilter value={status} onChange={onStatusChange} options={CAMPAIGN_STATUSES} />
+        <StatusFilter value={status} onChange={onStatusChange} options={PUBLIC_STATUS_OPTIONS} />
         <div className="flex items-center gap-2 text-xs text-slate-500">
-          {meta ? (
+          {shownTotal != null ? (
             <span>
-              {meta.total} campaign{meta.total === 1 ? "" : "s"}
+              {shownTotal} campaign{shownTotal === 1 ? "" : "s"}
             </span>
           ) : null}
         </div>
@@ -85,7 +94,7 @@ export function CampaignsList({ initialStatus }: { initialStatus: CampaignStatus
       ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {(query.isLoading ? Array.from({ length: 6 }, () => null) : items).map(
+            {(query.isLoading ? Array.from({ length: 6 }, () => null) : visibleItems).map(
               (campaign: Campaign | null, i) =>
                 campaign ? (
                   <CampaignCard key={campaign._id} campaign={campaign} />
@@ -97,12 +106,12 @@ export function CampaignsList({ initialStatus }: { initialStatus: CampaignStatus
           {meta ? (
             <div className="flex items-center justify-between border-t border-slate-200 pt-4 text-sm text-slate-600">
               <span>
-                {meta.total === 0
+                {shownTotal === 0
                   ? "No results"
                   : `Showing ${(meta.page - 1) * meta.limit + 1}–${Math.min(
-                      meta.total,
-                      meta.page * meta.limit,
-                    )} of ${meta.total}`}
+                      shownTotal ?? 0,
+                      (meta.page - 1) * meta.limit + visibleItems.length,
+                    )} of ${shownTotal ?? 0}`}
               </span>
               <div className="flex items-center gap-2">
                 <Button

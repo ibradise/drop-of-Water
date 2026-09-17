@@ -56,12 +56,18 @@ export function CampaignHero({ campaign }: { campaign: Campaign }) {
           </p>
         </div>
         <div className="flex flex-col gap-2 pt-1">
-          <Link href={`/campaigns/${campaign._id}/donate`}>
-            <Button size="lg" className="w-full">
-              <Sparkles className="h-4 w-4" />
-              Donate to this campaign
-            </Button>
-          </Link>
+          {campaign.status === "active" ? (
+            <Link href={`/campaigns/${campaign._id}/donate`}>
+              <Button size="lg" className="w-full">
+                <Sparkles className="h-4 w-4" />
+                Donate to this campaign
+              </Button>
+            </Link>
+          ) : (
+            <div className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-center text-sm text-slate-600">
+              This campaign isn&apos;t accepting donations right now.
+            </div>
+          )}
           <Link href={`/projects/${campaign.projectId}`}>
             <Button size="lg" variant="outline" className="w-full">
               <MapPin className="h-4 w-4" />
