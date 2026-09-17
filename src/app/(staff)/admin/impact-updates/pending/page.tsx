@@ -7,6 +7,7 @@ import { CalendarDays } from "lucide-react";
 import { adminApi } from "@/lib/api/admin";
 import { Card, CardContent, EmptyState } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Badge } from "@/components/ui/badge";
 
 export default function AdminPendingUpdatesPage() {
@@ -34,12 +35,14 @@ export default function AdminPendingUpdatesPage() {
       adminApi.rejectImpactUpdate(id, { reason }),
     onSuccess: () => {
       toast.success("Rejected.");
+      setRejectId(null);
       qc.invalidateQueries({ queryKey: ["admin", "impact-updates"] });
       qc.invalidateQueries({ queryKey: ["admin", "review-queue"] });
       qc.invalidateQueries({ queryKey: ["impact-updates"] });
     },
     onError: () => toast.error("Couldn't reject."),
   });
+  const [rejectId, setRejectId] = useState<string | null>(null);
 
   return (
     <div className="flex flex-col gap-6">
@@ -99,11 +102,7 @@ export default function AdminPendingUpdatesPage() {
                       size="sm"
                       variant="outline"
                       className="border-rose-300 text-rose-700 hover:bg-rose-50"
-                      onClick={() => {
-                        const reason =
-                          window.prompt("Rejection reason (optional, ≤1000 chars):", "") ?? "";
-                        reject.mutate({ id: u._id, reason });
-                      }}
+                      onClick={() => setRejectId(u._id)}
                       isLoading={reject.isPending && reject.variables?.id === u._id}
                     >
                       Reject
@@ -146,6 +145,24 @@ export default function AdminPendingUpdatesPage() {
           </div>
         </div>
       ) : null}
+
+      <ConfirmDialog
+        open={rejectId !== null}
+        onOpenChange={(open) => {
+          if (!open) setRejectId(null);
+        }}
+        onConfirm={(reason) => {
+          if (rejectId) reject.mutate({ id: rejectId, reason });
+        }}
+        title="Reject this update?"
+        description="The contributor is notified and the update stays out of public feeds."
+        confirmLabel="Reject"
+        danger
+        reasonLabel="Reason (optional)"
+        reasonPlaceholder="What should the contributor fix?"
+        reasonMaxLength={1000}
+        isPending={reject.isPending}
+      />
     </div>
   );
 }

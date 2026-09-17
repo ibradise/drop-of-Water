@@ -344,6 +344,7 @@ export function DonateFlow({ campaignId }: { campaignId: string }) {
                   label="Name"
                   error={errors.donorName?.message}
                   disabled={disabled}
+                  autoComplete="name"
                   {...register("donorName")}
                 />
                 <Field
@@ -352,6 +353,7 @@ export function DonateFlow({ campaignId }: { campaignId: string }) {
                   type="email"
                   error={errors.donorEmail?.message}
                   disabled={disabled}
+                  autoComplete="email"
                   {...register("donorEmail")}
                 />
               </CardContent>

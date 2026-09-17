@@ -333,6 +333,10 @@ export default function NewCampaignPage() {
               />
               {errors.goalAmount ? (
                 <p className="mt-1 text-xs text-rose-600">{errors.goalAmount.message}</p>
+              ) : !goalAmount || goalAmount < 1 ? (
+                <p className="mt-1 text-xs text-slate-500">
+                  Enter a goal of at least 1 ETB to continue.
+                </p>
               ) : null}
             </div>
             <div>

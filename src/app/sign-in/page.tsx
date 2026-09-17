@@ -7,7 +7,7 @@ import { z } from "zod";
 import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ArrowRight, Lock, Mail, Sparkles } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Lock, Mail, Sparkles } from "lucide-react";
 import { useAuth } from "@/lib/auth/context";
 import { getSafeNext } from "@/lib/safe-next";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,7 @@ function SignInInner() {
   const next = getSafeNext(search.get("next"));
   const { state, signInWithEmail, signInWithGoogle, devSignIn, isMockMode } = useAuth();
   const [submitting, setSubmitting] = useState<null | "email" | "google">(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (state.status === "authenticated") {
@@ -134,12 +135,25 @@ function SignInInner() {
                 <Lock className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
                 <input
                   id="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   placeholder="••••••••"
                   {...register("password")}
-                  className="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+                  className="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-9 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((s) => !s)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-pressed={showPassword}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-600"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-3.5 w-3.5" />
+                  ) : (
+                    <Eye className="h-3.5 w-3.5" />
+                  )}
+                </button>
               </div>
               {errors.password ? (
                 <p className="mt-1 text-xs text-rose-600">{errors.password.message}</p>

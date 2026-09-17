@@ -8,6 +8,7 @@ import { cn } from "@/lib/cn";
 
 const TABS = [
   { href: "/me", label: "Profile" },
+  { href: "/me/edit", label: "Edit profile" },
   { href: "/me/donations", label: "My donations" },
   { href: "/me/certificates", label: "My certificates" },
   { href: "/me/campaigns", label: "My campaigns" },
@@ -40,7 +41,10 @@ export default function AccountLayout({ children }: { children: ReactNode }) {
       </header>
       <nav className="flex flex-wrap gap-2 border-b border-slate-200 pb-3 text-sm">
         {TABS.map((t) => {
-          const active = pathname === t.href;
+          const active =
+            t.href === "/me"
+              ? pathname === "/me"
+              : pathname === t.href || pathname.startsWith(t.href + "/");
           return (
             <Link
               key={t.href}

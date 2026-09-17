@@ -166,7 +166,7 @@ function ReturnPanel({
           <span>Waiting for the gateway to settle the payment.</span>
         )
       }
-      extra={<p className="text-xs text-slate-500">Reference: {txRef || "—"}</p>}
+      extra={<p className="break-all text-xs text-slate-500">Reference: {txRef || "—"}</p>}
     />
   );
 }

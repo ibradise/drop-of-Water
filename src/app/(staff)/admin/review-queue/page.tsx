@@ -2,16 +2,19 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
+import { useState } from "react";
 import { CalendarDays, ChevronRight, Clock, FileText, Heart } from "lucide-react";
 import { toast } from "sonner";
 import { adminApi } from "@/lib/api/admin";
 import { Card, CardContent, EmptyState } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Money } from "@/components/ui/money";
 
 export default function AdminReviewQueuePage() {
   const qc = useQueryClient();
+  const [rejectId, setRejectId] = useState<string | null>(null);
   const queueQ = useQuery({
     queryKey: ["admin", "review-queue", { page: 1 }],
     queryFn: () => adminApi.reviewQueue({ page: 1, limit: 50 }),
@@ -31,6 +34,7 @@ export default function AdminReviewQueuePage() {
       adminApi.rejectImpactUpdate(id, { reason }),
     onSuccess: () => {
       toast.success("Rejected.");
+      setRejectId(null);
       qc.invalidateQueries({ queryKey: ["admin", "review-queue"] });
       qc.invalidateQueries({ queryKey: ["impact-updates"] });
     },
@@ -164,11 +168,7 @@ export default function AdminReviewQueuePage() {
                         size="sm"
                         variant="outline"
                         className="border-rose-300 text-rose-700 hover:bg-rose-50"
-                        onClick={() => {
-                          const reason =
-                            window.prompt("Rejection reason (optional, ≤1000 chars):", "") ?? "";
-                          rejectUpdate.mutate({ id: u._id, reason });
-                        }}
+                        onClick={() => setRejectId(u._id)}
                         isLoading={rejectUpdate.isPending && rejectUpdate.variables?.id === u._id}
                       >
                         Reject
@@ -181,6 +181,24 @@ export default function AdminReviewQueuePage() {
           </ul>
         )}
       </section>
+
+      <ConfirmDialog
+        open={rejectId !== null}
+        onOpenChange={(open) => {
+          if (!open) setRejectId(null);
+        }}
+        onConfirm={(reason) => {
+          if (rejectId) rejectUpdate.mutate({ id: rejectId, reason });
+        }}
+        title="Reject this update?"
+        description="The contributor is notified and the update stays out of public feeds."
+        confirmLabel="Reject"
+        danger
+        reasonLabel="Reason (optional)"
+        reasonPlaceholder="What should the contributor fix?"
+        reasonMaxLength={1000}
+        isPending={rejectUpdate.isPending}
+      />
     </div>
   );
 }

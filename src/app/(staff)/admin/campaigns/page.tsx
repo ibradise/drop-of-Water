@@ -2,20 +2,35 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Check, ChevronRight, Filter, X } from "lucide-react";
 import { toast } from "sonner";
 import { adminApi } from "@/lib/api/admin";
 import { campaignsApi } from "@/lib/api/campaigns";
 import { Card, CardContent, EmptyState } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Money } from "@/components/ui/money";
 import { CampaignStatusBadge } from "@/components/ui/status-badges";
 import { CAMPAIGN_STATUSES, type CampaignStatus } from "@/lib/enums";
 
 export default function AdminCampaignsPage() {
-  const [status, setStatus] = useState<CampaignStatus | null>(null);
+  return (
+    <Suspense fallback={<div className="text-sm text-slate-500">Loading…</div>}>
+      <AdminCampaignsInner />
+    </Suspense>
+  );
+}
+
+function AdminCampaignsInner() {
+  const search = useSearchParams();
+  const rawStatus = search.get("status");
+  const initialStatus = (CAMPAIGN_STATUSES as readonly string[]).includes(rawStatus ?? "")
+    ? (rawStatus as CampaignStatus)
+    : null;
+  const [status, setStatus] = useState<CampaignStatus | null>(initialStatus);
   const qc = useQueryClient();
 
   const q = useQuery({
@@ -36,6 +51,7 @@ export default function AdminCampaignsPage() {
       qc.invalidateQueries({ queryKey: ["admin", "dashboard"] });
       qc.invalidateQueries({ queryKey: ["admin", "review-queue"] });
       qc.invalidateQueries({ queryKey: ["campaigns"] });
+      setConfirmAction(null);
     },
     onError: () => toast.error("Couldn't approve campaign."),
   });
@@ -48,9 +64,13 @@ export default function AdminCampaignsPage() {
       qc.invalidateQueries({ queryKey: ["admin", "dashboard"] });
       qc.invalidateQueries({ queryKey: ["admin", "review-queue"] });
       qc.invalidateQueries({ queryKey: ["campaigns"] });
+      setConfirmAction(null);
     },
     onError: () => toast.error("Couldn't reject campaign."),
   });
+  const [confirmAction, setConfirmAction] = useState<
+    null | { id: string; title: string; approve: boolean }
+  >(null);
 
   return (
     <div className="flex flex-col gap-6">
@@ -125,7 +145,9 @@ export default function AdminCampaignsPage() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => approve.mutate(c._id)}
+                        onClick={() =>
+                          setConfirmAction({ id: c._id, title: c.title, approve: true })
+                        }
                         isLoading={approve.isPending && approve.variables === c._id}
                         className="text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
                       >
@@ -135,7 +157,9 @@ export default function AdminCampaignsPage() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => reject.mutate(c._id)}
+                        onClick={() =>
+                          setConfirmAction({ id: c._id, title: c.title, approve: false })
+                        }
                         isLoading={reject.isPending && reject.variables === c._id}
                         className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
                       >
@@ -152,6 +176,31 @@ export default function AdminCampaignsPage() {
           </ul>
         </Card>
       )}
+
+      <ConfirmDialog
+        open={confirmAction !== null}
+        onOpenChange={(open) => {
+          if (!open) setConfirmAction(null);
+        }}
+        onConfirm={() => {
+          if (!confirmAction) return;
+          if (confirmAction.approve) approve.mutate(confirmAction.id);
+          else reject.mutate(confirmAction.id);
+        }}
+        title={confirmAction?.approve ? "Approve this campaign?" : "Reject this campaign?"}
+        description={
+          confirmAction
+            ? `"${confirmAction.title}" will be ${
+                confirmAction.approve
+                  ? "activated and shown publicly."
+                  : "sent back to draft."
+              }`
+            : undefined
+        }
+        confirmLabel={confirmAction?.approve ? "Approve" : "Reject"}
+        danger={!confirmAction?.approve}
+        isPending={approve.isPending || reject.isPending}
+      />
     </div>
   );
 }

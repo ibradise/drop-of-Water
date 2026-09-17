@@ -182,6 +182,9 @@ function OnboardingInner() {
                 {...register("phoneNumber")}
                 className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
               />
+              {errors.phoneNumber ? (
+                <p className="mt-1 text-xs text-rose-600">{errors.phoneNumber.message}</p>
+              ) : null}
             </div>
             <div>
               <label
@@ -202,6 +205,9 @@ function OnboardingInner() {
                   </option>
                 ))}
               </select>
+              {errors.entityType ? (
+                <p className="mt-1 text-xs text-rose-600">{errors.entityType.message}</p>
+              ) : null}
             </div>
           </CardContent>
         </Card>
@@ -229,6 +235,7 @@ function OnboardingInner() {
                 <input
                   id="location"
                   type="text"
+                  autoComplete="address-level2"
                   {...register("profile.location")}
                   className="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
                 />
@@ -246,6 +253,7 @@ function OnboardingInner() {
                 <input
                   id="organizationName"
                   type="text"
+                  autoComplete="organization"
                   {...register("profile.organizationName")}
                   className="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
                 />

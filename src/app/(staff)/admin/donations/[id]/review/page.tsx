@@ -11,7 +11,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Money } from "@/components/ui/money";
-import { use } from "react";
+import { ConfirmDialog } from "@/components/confirm-dialog";
+import { use, useState } from "react";
 
 export default function AdminDonationReviewPage({
   params,
@@ -35,9 +36,9 @@ function ReviewInner({ id }: { id: string }) {
   });
 
   const review = useMutation({
-    mutationFn: (approve: boolean) =>
-      adminApi.reviewDonation(id, { approve, note: undefined }),
-    onSuccess: (_, approve) => {
+    mutationFn: ({ approve, note }: { approve: boolean; note?: string }) =>
+      adminApi.reviewDonation(id, { approve, note }),
+    onSuccess: (_, { approve }) => {
       toast.success(approve ? "Donation approved." : "Donation rejected.");
       qc.invalidateQueries({ queryKey: ["admin", "donations"] });
       qc.invalidateQueries({ queryKey: ["admin", "review-queue"] });
@@ -45,6 +46,7 @@ function ReviewInner({ id }: { id: string }) {
       qc.invalidateQueries({ queryKey: ["donations"] });
       qc.invalidateQueries({ queryKey: ["campaigns"] });
       qc.invalidateQueries({ queryKey: ["projects"] });
+      setDecision(null);
       router.push("/admin/donations");
     },
     onError: (err) => {
@@ -52,6 +54,7 @@ function ReviewInner({ id }: { id: string }) {
       toast.error(msg);
     },
   });
+  const [decision, setDecision] = useState<null | { approve: boolean }>(null);
 
   if (donationQ.isLoading) {
     return <div className="h-64 animate-pulse rounded-xl bg-slate-100" />;
@@ -178,21 +181,45 @@ function ReviewInner({ id }: { id: string }) {
         <Button
           variant="outline"
           className="border-rose-300 text-rose-700 hover:bg-rose-50"
-          onClick={() => review.mutate(false)}
-          isLoading={review.isPending}
+          onClick={() => setDecision({ approve: false })}
         >
           <XCircle className="h-4 w-4" />
           {rejectLabel}
         </Button>
         <Button
           className="bg-emerald-600 hover:bg-emerald-700"
-          onClick={() => review.mutate(true)}
-          isLoading={review.isPending}
+          onClick={() => setDecision({ approve: true })}
         >
           <CheckCircle2 className="h-4 w-4" />
           {approveLabel}
         </Button>
       </div>
+
+      <ConfirmDialog
+        open={decision !== null}
+        onOpenChange={(open) => {
+          if (!open) setDecision(null);
+        }}
+        onConfirm={(note) => {
+          if (decision) review.mutate({ approve: decision.approve, note: note || undefined });
+        }}
+        title={decision?.approve ? approveLabel : rejectLabel}
+        description={
+          decision?.approve
+            ? isCaptured
+              ? "This credits the campaign and project totals."
+              : "This returns the donation to the pending queue."
+            : isCaptured
+              ? "This records a refund owed to the donor. The gateway refund itself stays manual."
+              : "This marks the donation failed and reverses no totals."
+        }
+        confirmLabel={decision?.approve ? "Approve" : "Reject"}
+        danger={!decision?.approve}
+        reasonLabel="Note for the record (optional)"
+        reasonPlaceholder="Why was this decision made?"
+        reasonMaxLength={500}
+        isPending={review.isPending}
+      />
     </div>
   );
 }

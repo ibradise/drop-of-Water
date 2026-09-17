@@ -20,6 +20,7 @@ import { Money } from "@/components/ui/money";
 import { CampaignStatusBadge } from "@/components/ui/status-badges";
 import { ProgressBar } from "@/components/progress-bar";
 import { Badge } from "@/components/ui/badge";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 
 const formSchema = z.object({
   title: z.string().min(1).max(200),
@@ -253,8 +254,8 @@ function ManageCampaign({ id }: { id: string }) {
                 key={p._id}
                 className="flex items-center justify-between gap-3 py-2 text-sm"
               >
-                <div className="flex flex-col">
-                  <span className="font-medium text-slate-900">
+                <div className="flex min-w-0 flex-col">
+                  <span className="break-all font-medium text-slate-900">
                     {p.userId === c.createdBy ? "You (creator)" : p.userId}
                   </span>
                   <span className="text-xs text-slate-500">
@@ -542,10 +543,12 @@ function DeletePanel({
     mutationFn: () => campaignsApi.remove(id),
     onSuccess: () => {
       toast.success("Campaign deleted.");
+      setConfirmOpen(false);
       onDeleted();
     },
     onError: () => toast.error("Couldn't delete the campaign."),
   });
+  const [confirmOpen, setConfirmOpen] = useState(false);
   return (
     <Card className="border-rose-200 bg-rose-50/30">
       <CardContent className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -558,17 +561,23 @@ function DeletePanel({
         <Button
           variant="outline"
           className="border-rose-300 text-rose-700 hover:bg-rose-100"
-          onClick={() => {
-            if (confirm("Delete this campaign? This cannot be undone from the UI.")) {
-              remove.mutate();
-            }
-          }}
+          onClick={() => setConfirmOpen(true)}
           isLoading={remove.isPending}
         >
           <Trash2 className="h-4 w-4" />
           Delete
         </Button>
       </CardContent>
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        onConfirm={() => remove.mutate()}
+        title="Delete this campaign?"
+        description="The campaign is removed from listings but kept in the database. This cannot be undone from the UI."
+        confirmLabel="Delete"
+        danger
+        isPending={remove.isPending}
+      />
     </Card>
   );
 }

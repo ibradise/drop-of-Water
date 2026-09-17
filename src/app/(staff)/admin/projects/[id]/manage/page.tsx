@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Money } from "@/components/ui/money";
 import { ProjectStatusBadge } from "@/components/ui/status-badges";
 import { ProgressBar } from "@/components/progress-bar";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 
 export default function AdminProjectManagePage({
   params,
@@ -48,6 +49,7 @@ function Inner({ id }: { id: string }) {
     mutationFn: (mid: string) => projectsApi.removeMilestone(id, mid),
     onSuccess: () => {
       toast.success("Milestone removed.");
+      setRemoveMilestoneId(null);
       qc.invalidateQueries({ queryKey: ["projects", "get", id] });
       qc.invalidateQueries({ queryKey: ["projects", "list"] });
       qc.invalidateQueries({ queryKey: ["admin", "projects"] });
@@ -101,6 +103,7 @@ function Inner({ id }: { id: string }) {
   const [newCostItem, setNewCostItem] = useState({ item: "", amount: 0 });
   const [newPhotos, setNewPhotos] = useState("");
   const [newProofs, setNewProofs] = useState("");
+  const [removeMilestoneId, setRemoveMilestoneId] = useState<string | null>(null);
 
   if (projectQ.isLoading)
     return <div className="h-64 animate-pulse rounded-xl bg-slate-100" />;
@@ -208,10 +211,9 @@ function Inner({ id }: { id: string }) {
                   <Button
                     size="sm"
                     variant="ghost"
+                    aria-label={`Remove milestone ${m.title}`}
                     onClick={() => {
-                      if (m._id && confirm("Remove this milestone?")) {
-                        removeMilestone.mutate(m._id);
-                      }
+                      if (m._id) setRemoveMilestoneId(m._id);
                     }}
                   >
                     <Trash2 className="h-3 w-3" />
@@ -233,6 +235,7 @@ function Inner({ id }: { id: string }) {
               value={newMilestone.title}
               onChange={(e) => setNewMilestone((s) => ({ ...s, title: e.target.value }))}
               placeholder="Milestone title"
+              aria-label="Milestone title"
               className="flex-1 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
             />
             <input
@@ -242,6 +245,7 @@ function Inner({ id }: { id: string }) {
                 setNewMilestone((s) => ({ ...s, description: e.target.value }))
               }
               placeholder="Description (optional)"
+              aria-label="Milestone description (optional)"
               className="flex-1 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
             />
             <Button type="submit" isLoading={addMilestone.isPending}>
@@ -290,6 +294,7 @@ function Inner({ id }: { id: string }) {
               value={newCostItem.item}
               onChange={(e) => setNewCostItem((s) => ({ ...s, item: e.target.value }))}
               placeholder="Item name"
+              aria-label="Cost item name"
               className="flex-1 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
             />
             <input
@@ -301,6 +306,7 @@ function Inner({ id }: { id: string }) {
                 setNewCostItem((s) => ({ ...s, amount: Number(e.target.value) }))
               }
               placeholder="Amount (ETB)"
+              aria-label="Cost item amount in ETB"
               className="w-32 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
             />
             <Button type="submit" isLoading={addCostItem.isPending}>
@@ -347,6 +353,7 @@ function Inner({ id }: { id: string }) {
               value={newPhotos}
               onChange={(e) => setNewPhotos(e.target.value)}
               placeholder="Photo URLs, one per line"
+              aria-label="Photo URLs, one per line"
               className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
             />
             <Button type="submit" isLoading={addPhotos.isPending} className="self-end">
@@ -404,6 +411,7 @@ function Inner({ id }: { id: string }) {
               value={newProofs}
               onChange={(e) => setNewProofs(e.target.value)}
               placeholder="type | url (one per line, e.g. 'photo | https://…')"
+              aria-label="Proofs, one per line as type | url"
               className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
             />
             <Button type="submit" isLoading={addProofs.isPending} className="self-end">
@@ -413,6 +421,21 @@ function Inner({ id }: { id: string }) {
           </form>
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={removeMilestoneId !== null}
+        onOpenChange={(open) => {
+          if (!open) setRemoveMilestoneId(null);
+        }}
+        onConfirm={() => {
+          if (removeMilestoneId) removeMilestone.mutate(removeMilestoneId);
+        }}
+        title="Remove this milestone?"
+        description="The milestone is removed from the project. This cannot be undone from the UI."
+        confirmLabel="Remove"
+        danger
+        isPending={removeMilestone.isPending}
+      />
     </div>
   );
 }

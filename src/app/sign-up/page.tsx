@@ -7,7 +7,7 @@ import { z } from "zod";
 import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ArrowRight, Lock, Mail, User } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Lock, Mail, User } from "lucide-react";
 import { useAuth } from "@/lib/auth/context";
 import { getSafeNext } from "@/lib/safe-next";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,7 @@ function SignUpInner() {
   const next = getSafeNext(search.get("next"));
   const { state, signUpWithEmail } = useAuth();
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (state.status === "authenticated") {
@@ -121,12 +122,25 @@ function SignUpInner() {
                 <Lock className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
                 <input
                   id="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   autoComplete="new-password"
                   placeholder="At least 8 characters"
                   {...register("password")}
-                  className="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+                  className="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-9 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((s) => !s)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-pressed={showPassword}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-600"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-3.5 w-3.5" />
+                  ) : (
+                    <Eye className="h-3.5 w-3.5" />
+                  )}
+                </button>
               </div>
               {errors.password ? (
                 <p className="mt-1 text-xs text-rose-600">{errors.password.message}</p>
@@ -143,7 +157,7 @@ function SignUpInner() {
                 <Lock className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
                 <input
                   id="confirm"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   autoComplete="new-password"
                   placeholder="Repeat your password"
                   {...register("confirm")}

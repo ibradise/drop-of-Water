@@ -66,6 +66,7 @@ export default function MeNotificationsPage() {
               value={tokenInput}
               onChange={(e) => setTokenInput(e.target.value)}
               placeholder="FCM device token (or any string in dev)"
+              aria-label="Device token"
               className="flex-1 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
             />
             <Button

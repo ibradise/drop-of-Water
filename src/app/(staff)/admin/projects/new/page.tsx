@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { cloneElement, isValidElement, useId } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -280,10 +281,16 @@ function Field({
   error?: string;
   children: React.ReactNode;
 }) {
+  const id = useId();
+  const control = isValidElement(children)
+    ? cloneElement(children as React.ReactElement<{ id?: string }>, { id })
+    : children;
   return (
     <div>
-      <label className="mb-1 block text-sm font-medium text-slate-700">{label}</label>
-      {children}
+      <label htmlFor={id} className="mb-1 block text-sm font-medium text-slate-700">
+        {label}
+      </label>
+      {control}
       {error ? <p className="mt-1 text-xs text-rose-600">{error}</p> : null}
     </div>
   );

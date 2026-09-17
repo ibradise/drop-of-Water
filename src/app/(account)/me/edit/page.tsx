@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { cloneElement, isValidElement, useEffect, useId } from "react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -141,6 +141,7 @@ export default function EditProfilePage() {
               <Field label="Full name" error={errors.name?.message}>
                 <input
                   type="text"
+                  autoComplete="name"
                   {...register("name")}
                   className={inputCls(Boolean(errors.name))}
                 />
@@ -148,6 +149,7 @@ export default function EditProfilePage() {
               <Field label="Phone number" error={errors.phoneNumber?.message}>
                 <input
                   type="text"
+                  autoComplete="tel"
                   placeholder="Optional"
                   {...register("phoneNumber")}
                   className={inputCls(Boolean(errors.phoneNumber))}
@@ -180,6 +182,7 @@ export default function EditProfilePage() {
             <Field label="Organization" error={errors.organizationName?.message}>
               <input
                 type="text"
+                autoComplete="organization"
                 placeholder="Optional"
                 {...register("organizationName")}
                 className={inputCls(Boolean(errors.organizationName))}
@@ -189,6 +192,7 @@ export default function EditProfilePage() {
             <Field label="Location" error={errors.location?.message}>
               <input
                 type="text"
+                autoComplete="address-level2"
                 placeholder="Optional"
                 {...register("location")}
                 className={inputCls(Boolean(errors.location))}
@@ -236,10 +240,16 @@ function Field({
   error?: string;
   children: React.ReactNode;
 }) {
+  const id = useId();
+  const control = isValidElement(children)
+    ? cloneElement(children as React.ReactElement<{ id?: string }>, { id })
+    : children;
   return (
     <div>
-      <label className="mb-1 block text-sm font-medium text-slate-700">{label}</label>
-      {children}
+      <label htmlFor={id} className="mb-1 block text-sm font-medium text-slate-700">
+        {label}
+      </label>
+      {control}
       {error ? <p className="mt-1 text-xs text-rose-600">{error}</p> : null}
     </div>
   );
