@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { CalendarDays, MapPin } from "lucide-react";
+import { CalendarDays, Clock, MapPin } from "lucide-react";
 import { campaignsApi } from "@/lib/api/campaigns";
 import { projectsApi } from "@/lib/api/projects";
 import { donationsApi } from "@/lib/api/donations";
@@ -13,6 +13,7 @@ import { hasAnyRole, ROLE_GROUPS } from "@/lib/enums";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Money } from "@/components/ui/money";
+import { formatDate } from "@/lib/format-date";
 import { CampaignStatusBadge } from "@/components/ui/status-badges";
 import { ProgressBar } from "@/components/progress-bar";
 import {
@@ -64,15 +65,15 @@ export function CampaignDetail({ campaignId }: { campaignId: string }) {
             {is404
               ? "Campaign not found"
               : isUnexpected
-                ? "Data looked unexpected"
-                : "Couldn't load this campaign"}
+                ? "This looks different than expected"
+                : "We couldn't load this campaign"}
           </CardTitle>
           <CardDescription>
             {is404
               ? "It may have been removed or the link is wrong."
               : isUnexpected
-                ? "Please refresh; if it keeps happening, contact support."
-                : "Something went wrong talking to the API."}
+                ? "Please refresh the page to try again. If it keeps happening, contact support."
+                : "Something went wrong on our side. Please try again. If it keeps happening, contact support."}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
@@ -101,15 +102,18 @@ export function CampaignDetail({ campaignId }: { campaignId: string }) {
       return (
         <Card>
           <CardHeader>
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sky-50">
+              <Clock className="h-5 w-5 text-sky-700" />
+            </div>
             <CardTitle>This campaign isn&apos;t public yet</CardTitle>
             <CardDescription>
-              It&apos;s still in &ldquo;{campaign.status.replace(/_/g, " ")}&rdquo; status and will
-              be visible to everyone once it goes live.
+              The creator is still preparing it. Please check back once it&apos;s
+              live, or explore other campaigns.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => router.push("/campaigns")}>
-              Back to campaigns
+            <Button onClick={() => router.push("/campaigns")}>
+              Browse campaigns
             </Button>
           </CardContent>
         </Card>
@@ -197,7 +201,7 @@ export function CampaignDetail({ campaignId }: { campaignId: string }) {
                     {u.publishedAt ? (
                       <span className="inline-flex items-center gap-1 text-xs text-slate-500">
                         <CalendarDays className="h-3 w-3" />
-                        {new Date(u.publishedAt).toLocaleDateString()}
+                        {formatDate(u.publishedAt)}
                       </span>
                     ) : null}
                   </div>

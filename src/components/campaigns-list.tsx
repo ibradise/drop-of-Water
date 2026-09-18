@@ -66,8 +66,8 @@ export function CampaignsList({ initialStatus }: { initialStatus: CampaignStatus
       {query.isError ? (
         <EmptyState
           icon={<Frown className="h-8 w-8" />}
-          title="Couldn't load campaigns"
-          description="Something went wrong talking to the API. Try again."
+          title="We couldn't load campaigns"
+          description="Something went wrong on our side. Please try again. If it keeps failing, contact support."
           action={
             <Button variant="outline" onClick={() => query.refetch()}>
               Retry
@@ -80,7 +80,7 @@ export function CampaignsList({ initialStatus }: { initialStatus: CampaignStatus
           title="No campaigns found"
           description={
             status
-              ? `No campaigns in "${status.replace(/_/g, " ")}" status.`
+              ? `There are no ${status.replace(/_/g, " ")} campaigns right now.`
               : "There are no campaigns to show yet."
           }
           action={

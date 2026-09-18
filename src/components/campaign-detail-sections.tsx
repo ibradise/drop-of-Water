@@ -2,6 +2,7 @@ import { CalendarDays, MapPin, Sparkles, Users } from "lucide-react";
 import type { Campaign } from "@/lib/schemas/campaign";
 import { Card, CardContent } from "@/components/ui/card";
 import { Money } from "@/components/ui/money";
+import { formatDate } from "@/lib/format-date";
 import { CampaignStatusBadge } from "@/components/ui/status-badges";
 import { ProgressBar } from "@/components/progress-bar";
 import { Button } from "@/components/ui/button";
@@ -239,7 +240,7 @@ export function CampaignDonors({
                   {d.donorSnapshot?.name ?? "Anonymous"}
                 </span>
                 <span className="text-xs text-slate-500">
-                  {new Date(d.createdAt).toLocaleDateString()}
+                  {formatDate(d.createdAt)}
                 </span>
               </div>
               <Money cents={d.amount} currency={d.currency || currency} />

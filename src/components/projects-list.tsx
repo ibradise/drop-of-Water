@@ -57,8 +57,8 @@ export function ProjectsList({ initialStatus }: { initialStatus: ProjectStatus |
       {query.isError ? (
         <EmptyState
           icon={<Frown className="h-8 w-8" />}
-          title="Couldn't load projects"
-          description="Something went wrong talking to the API. Try again."
+          title="We couldn't load projects"
+          description="Something went wrong on our side. Please try again. If it keeps failing, contact support."
           action={
             <Button variant="outline" onClick={() => query.refetch()}>
               Retry
@@ -71,7 +71,7 @@ export function ProjectsList({ initialStatus }: { initialStatus: ProjectStatus |
           title="No projects found"
           description={
             status
-              ? `No projects in "${status.replace(/_/g, " ")}" status.`
+              ? `There are no ${status.replace(/_/g, " ")} projects right now.`
               : "There are no projects to show yet."
           }
           action={
