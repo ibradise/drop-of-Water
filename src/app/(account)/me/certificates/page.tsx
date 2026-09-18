@@ -6,17 +6,17 @@ import { Check, Copy, ExternalLink, Eye, EyeOff, Share2, Sparkles } from "lucide
 import { toast } from "sonner";
 import Link from "next/link";
 import { certificatesApi } from "@/lib/api/certificates";
-import { ApiError } from "@/lib/api/client";
 import { CERTIFICATE_TYPES, type CertificateType } from "@/lib/enums";
 import { Card, CardContent, EmptyState } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge, type Tone } from "@/components/ui/badge";
 import { Money } from "@/components/ui/money";
+import { formatDate } from "@/lib/format-date";
 
 const BADGE_TONE: Record<"bronze" | "silver" | "gold" | "champion", Tone> = {
   bronze: "warning",
   silver: "neutral",
-  gold: "info",
+  gold: "brand",
   champion: "success",
 };
 
@@ -32,14 +32,13 @@ export default function MeCertificatesPage() {
     mutationFn: (type: CertificateType) =>
       certificatesApi.generate({ type }),
     onSuccess: () => {
-      toast.success("Certificate issued.");
+      toast.success("Your new certificate is ready below. You can make it public and share the link.");
       qc.invalidateQueries({ queryKey: ["certificates", "me"] });
       setGenerating(null);
     },
     onError: (err) => {
-      const msg =
-        err instanceof ApiError ? err.messages[0] : "Couldn't generate the certificate.";
-      toast.error(msg);
+      console.error("Generate certificate failed:", err);
+      toast.error("We couldn't generate your certificate right now. Please try again.");
       setGenerating(null);
     },
   });
@@ -47,10 +46,14 @@ export default function MeCertificatesPage() {
   const setVisibility = useMutation({
     mutationFn: ({ id, isPublic }: { id: string; isPublic: boolean }) =>
       certificatesApi.setVisibility(id, { isPublic }),
-    onSuccess: () => {
+    onSuccess: (_, { isPublic }) => {
+      toast.success(isPublic ? "Certificate is now public. Anyone with the link can view it." : "Certificate is now private. Only you can view it.");
       qc.invalidateQueries({ queryKey: ["certificates", "me"] });
     },
-    onError: () => toast.error("Couldn't update visibility."),
+    onError: (err) => {
+      console.error("Update certificate visibility failed:", err);
+      toast.error("We couldn't change who can see this certificate. Please try again.");
+    },
   });
 
   const items = certsQ.data?.data ?? [];
@@ -82,7 +85,6 @@ export default function MeCertificatesPage() {
               </p>
               <Button
                 size="sm"
-                variant="outline"
                 onClick={() => {
                   setGenerating(type);
                   generate.mutate(type);
@@ -98,7 +100,8 @@ export default function MeCertificatesPage() {
 
       {certsQ.isError ? (
         <EmptyState
-          title="Couldn't load your certificates"
+          title="We couldn't load your certificates"
+          description="Something went wrong on our side. Please try again. If it keeps failing, contact support."
           action={
             <Button variant="outline" onClick={() => certsQ.refetch()}>
               Retry
@@ -139,7 +142,7 @@ export default function MeCertificatesPage() {
                   <p className="text-sm text-slate-600">{cert.description}</p>
                   <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
                     <span>
-                      Issued {new Date(cert.issuedAt).toLocaleDateString()}
+                      Issued {formatDate(cert.issuedAt)}
                     </span>
                     {cert.type === "fundraising" && cert.totalAmount > 0 ? (
                       <span>
@@ -209,7 +212,7 @@ function ShareLink({ code }: { code: string }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      toast.error("Couldn't copy. Long-press the link instead.");
+      toast.error("We couldn't copy the link automatically. Please press and hold the link to copy it.");
     }
   };
 

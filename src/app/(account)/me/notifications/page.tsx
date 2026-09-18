@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { notificationsApi } from "@/lib/api/notifications";
 import { Card, CardContent, EmptyState } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { formatDateTime } from "@/lib/format-date";
 
 export default function MeNotificationsPage() {
   const qc = useQueryClient();
@@ -21,16 +21,22 @@ export default function MeNotificationsPage() {
   const registerToken = useMutation({
     mutationFn: (token: string) => notificationsApi.registerDevice(token),
     onSuccess: () => {
-      toast.success("Device registered for push notifications.");
+      toast.success("Push notifications turned on for this device.");
       setTokenInput("");
     },
-    onError: () => toast.error("Couldn't register the device token."),
+    onError: (err) => {
+      console.error("Register device token failed:", err);
+      toast.error("We couldn't turn on push notifications for this device. Please check the token and try again.");
+    },
   });
 
   const unregisterToken = useMutation({
     mutationFn: (token: string) => notificationsApi.unregisterDevice(token),
-    onSuccess: () => toast.success("Device unregistered."),
-    onError: () => toast.error("Couldn't unregister."),
+    onSuccess: () => toast.success("Push notifications turned off for this device."),
+    onError: (err) => {
+      console.error("Unregister device token failed:", err);
+      toast.error("We couldn't turn off notifications for this device. Please try again.");
+    },
   });
 
   const items = listQ.data ?? [];
@@ -99,7 +105,8 @@ export default function MeNotificationsPage() {
         </div>
       ) : listQ.isError ? (
         <EmptyState
-          title="Couldn't load notifications"
+          title="We couldn't load notifications"
+          description="Something went wrong on our side. Please try again. If it keeps failing, contact support."
           action={
             <Button variant="outline" onClick={() => qc.invalidateQueries({ queryKey: ["notifications", "me"] })}>
               Retry
@@ -129,15 +136,17 @@ export default function MeNotificationsPage() {
               <div className="flex-1">
                 <div className="flex items-center gap-2">
                   <h3 className="text-sm font-semibold text-slate-900">{n.title}</h3>
-                  {!n.read ? <Badge tone="info">new</Badge> : null}
                 </div>
                 <p className="text-sm text-slate-600">{n.body}</p>
                 <p className="mt-1 text-xs text-slate-400">
-                  {new Date(n.createdAt).toLocaleString()}
+                  {formatDateTime(n.createdAt)}
                 </p>
               </div>
               {n.read ? (
-                <Check className="h-4 w-4 flex-shrink-0 text-slate-300" aria-label="read" />
+                <span className="inline-flex flex-shrink-0 items-center gap-1 text-xs text-slate-400">
+                  <Check className="h-4 w-4 text-slate-300" aria-hidden />
+                  <span className="sr-only">Read</span>
+                </span>
               ) : null}
             </li>
           ))}

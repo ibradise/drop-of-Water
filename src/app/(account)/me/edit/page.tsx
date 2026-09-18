@@ -10,7 +10,6 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth/context";
 import { usersApi } from "@/lib/api/users";
-import { ApiError } from "@/lib/api/client";
 import { ENTITY_TYPES } from "@/lib/enums";
 import { type UpdateMeInput } from "@/lib/schemas/user";
 import { Button } from "@/components/ui/button";
@@ -97,12 +96,13 @@ export default function EditProfilePage() {
       return usersApi.updateMe(payload);
     },
     onSuccess: () => {
-      toast.success("Profile updated.");
+      toast.success("Your profile has been updated.");
       qc.invalidateQueries({ queryKey: ["users", "me"] });
       router.push("/me");
     },
     onError: (err) => {
-      toast.error(err instanceof ApiError ? err.messages[0] : "Couldn't save your profile.");
+      console.error("Save profile failed:", err);
+      toast.error("We couldn't save your profile. Please try again.");
     },
   });
 
@@ -234,7 +234,7 @@ export default function EditProfilePage() {
                 Save profile
               </Button>
               <Link href="/me">
-                <Button type="button" variant="ghost" size="lg">
+                <Button type="button" variant="outline" size="lg">
                   Cancel
                 </Button>
               </Link>

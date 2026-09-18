@@ -86,12 +86,12 @@ function Step({
   body: string;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200/80 bg-white p-5">
+    <Card className="p-5 hover:shadow-sm">
       <div className="grid h-10 w-10 place-items-center rounded-lg bg-sky-50 text-sky-700">
         {icon}
       </div>
       <h3 className="mt-3 text-sm font-semibold text-slate-900">{title}</h3>
       <p className="mt-1 text-sm text-slate-500">{body}</p>
-    </div>
+    </Card>
   );
 }

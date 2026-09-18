@@ -12,11 +12,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge, type Tone } from "@/components/ui/badge";
 import { Money } from "@/components/ui/money";
+import { formatDate } from "@/lib/format-date";
 
 const BADGE_TONE: Record<"bronze" | "silver" | "gold" | "champion", Tone> = {
   bronze: "warning",
   silver: "neutral",
-  gold: "info",
+  gold: "brand",
   champion: "success",
 };
 
@@ -48,7 +49,7 @@ export default function PublicCertificatePage({
     const is403 = certQ.error instanceof ApiError && certQ.error.statusCode === 403;
     const isUnexpected = !(certQ.error instanceof ApiError);
     return (
-      <div className="mx-auto max-w-xl">
+      <div className="mx-auto max-w-2xl">
         <Card>
           <CardHeader>
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100">
@@ -60,8 +61,8 @@ export default function PublicCertificatePage({
                 : is404
                   ? "Certificate not found"
                   : isUnexpected
-                    ? "Data looked unexpected"
-                    : "Couldn't load this certificate"}
+                    ? "This looks different than expected"
+                    : "We couldn't load this certificate"}
             </CardTitle>
             <CardDescription>
               {is403
@@ -69,12 +70,12 @@ export default function PublicCertificatePage({
                 : is404
                   ? "It may have been removed, or the link is wrong."
                   : isUnexpected
-                    ? "Please refresh; if it keeps happening, contact support."
-                    : "Something went wrong."}
+                    ? "Please refresh the page to try again. If it keeps happening, contact support."
+                    : "Something went wrong on our side. Please try again. If it keeps happening, contact support."}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => certQ.refetch()}>
+            <Button onClick={() => certQ.refetch()}>
               Retry
             </Button>
             <Button variant="outline" onClick={() => router.push("/")}>
@@ -88,22 +89,22 @@ export default function PublicCertificatePage({
 
   const cert = certQ.data;
   if (!cert) return null;
-  const issued = new Date(cert.issuedAt).toLocaleDateString();
+  const issued = formatDate(cert.issuedAt);
   const isFunding = cert.type === "fundraising";
 
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
-      toast.success("Link copied.");
+      toast.success("Certificate link copied. You can now share it anywhere.");
     } catch {
-      toast.error("Couldn't copy.");
+      toast.error("We couldn't copy the link automatically. Please copy it manually.");
     }
   };
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
-      <div className="overflow-hidden rounded-3xl border border-amber-200/60 bg-gradient-to-br from-amber-50 via-white to-sky-50 p-8 text-center shadow-sm sm:p-10">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg shadow-amber-500/30">
+      <div className="overflow-hidden rounded-3xl border border-sky-200/60 bg-gradient-to-br from-sky-50 via-white to-cyan-50 p-8 text-center shadow-sm sm:p-10">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-cyan-600 text-white shadow-lg shadow-sky-500/30">
           <Award className="h-7 w-7" />
         </div>
         <div className="mt-4 flex items-center justify-center gap-2">

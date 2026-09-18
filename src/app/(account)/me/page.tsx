@@ -126,7 +126,14 @@ export default function MePage() {
       </Card>
 
       {meQ.isError ? (
-        <p className="text-xs text-rose-600">Failed to refresh profile.</p>
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3">
+          <p className="text-sm text-slate-600">
+            We couldn&apos;t refresh your profile. Please try again.
+          </p>
+          <Button variant="outline" size="sm" onClick={() => meQ.refetch()}>
+            Retry
+          </Button>
+        </div>
       ) : null}
     </div>
   );

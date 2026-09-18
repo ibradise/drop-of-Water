@@ -10,9 +10,11 @@ import { DONATION_STATUSES, type DonationStatus } from "@/lib/enums";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Money } from "@/components/ui/money";
 import { DonationStatusBadge } from "@/components/ui/status-badges";
 import { ApiError } from "@/lib/api/client";
+import { formatDateTime } from "@/lib/format-date";
 
 export default function MeDonationsPage() {
   const [status, setStatus] = useState<DonationStatus | null>(null);
@@ -53,11 +55,11 @@ export default function MeDonationsPage() {
       {donationsQ.isError ? (
         <EmptyState
           icon={<Heart className="h-8 w-8" />}
-          title="Couldn't load your donations"
+          title="We couldn't load your donations"
           description={
             donationsQ.error instanceof ApiError && donationsQ.error.isUnauthorized
               ? "Your session has expired. Please sign in again."
-              : "Something went wrong. Try again."
+              : "Something went wrong on our side. Please try again. If it keeps failing, contact support."
           }
           action={
             <Button variant="outline" onClick={() => donationsQ.refetch()}>
@@ -94,9 +96,7 @@ export default function MeDonationsPage() {
                   <div className="flex items-center gap-2">
                     <DonationStatusBadge status={d.status} />
                     {d.requiresManualReview ? (
-                      <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-200">
-                        high-value
-                      </span>
+                      <Badge tone="warning">high-value</Badge>
                     ) : null}
                   </div>
                   <div className="text-sm font-medium text-slate-900">
@@ -110,7 +110,7 @@ export default function MeDonationsPage() {
                   </div>
                   <div className="flex items-center gap-1 text-xs text-slate-500">
                     <CalendarDays className="h-3 w-3" />
-                    {new Date(d.createdAt).toLocaleString()}
+                    {formatDateTime(d.createdAt)}
                     {d.paymentMethod ? (
                       <>
                         <span className="mx-1">·</span>
