@@ -18,7 +18,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { EmptyState } from "@/components/ui/card";
 import { Money } from "@/components/ui/money";
 import { ProgressBar } from "@/components/progress-bar";
-import { ApiError } from "@/lib/api/client";
 
 const CREATOR_ROLES: Role[] = [
   "campaign_creator",
@@ -129,11 +128,9 @@ export default function NewCampaignPage() {
     },
     onError: (err) => {
       console.error("Create campaign failed:", err);
-      const msg =
-        err instanceof ApiError
-          ? `[${err.statusCode}] ${err.messages[0]}`
-          : "Couldn't create your campaign. Check the console for details.";
-      toast.error(msg);
+      toast.error(
+        "We couldn't create your campaign. Please check your entries and try again. If it keeps failing, contact support.",
+      );
     },
   });
 

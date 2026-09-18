@@ -7,7 +7,7 @@ import { campaignsApi } from "@/lib/api/campaigns";
 import { projectsApi } from "@/lib/api/projects";
 import { CampaignCard } from "@/components/campaign-card";
 import { ProjectCard } from "@/components/project-card";
-import { EmptyState } from "@/components/ui/card";
+import { EmptyState, Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Money } from "@/components/ui/money";
 
@@ -22,19 +22,19 @@ const FEATURES = [
     icon: Heart,
     title: "See your impact",
     body: "Receive impact updates from the field and earn shareable certificates for your contributions.",
-    tint: "from-rose-500/15 to-pink-500/0 text-rose-700",
+    tint: "from-cyan-500/15 to-sky-500/0 text-cyan-700",
   },
   {
     icon: Users,
     title: "Run a campaign",
     body: "Students, chapters, and corporate partners can create campaigns and rally their communities.",
-    tint: "from-emerald-500/15 to-teal-500/0 text-emerald-700",
+    tint: "from-sky-500/15 to-cyan-500/0 text-sky-700",
   },
   {
     icon: Shield,
     title: "Built for Ethiopia",
     body: "Local payment partners (Chapa, Zeffy) and currency-aware totals — give in ETB with confidence.",
-    tint: "from-amber-500/15 to-orange-500/0 text-amber-700",
+    tint: "from-cyan-500/15 to-sky-500/0 text-cyan-700",
   },
 ] as const;
 
@@ -177,8 +177,8 @@ export default function HomePage() {
           ) : featuredError ? (
             <EmptyState
               icon={<TriangleAlert className="h-6 w-6" />}
-              title="Couldn't load campaigns"
-              description="Something went wrong while connecting to the campaign feed."
+              title="We couldn't load campaigns"
+              description="Something went wrong on our side. Please try again. If it keeps failing, contact support."
               action={
                 <Button variant="outline" size="sm" onClick={() => refetchFeatured()}>
                   Retry
@@ -233,8 +233,8 @@ export default function HomePage() {
           ) : projectsError ? (
             <EmptyState
               icon={<TriangleAlert className="h-6 w-6" />}
-              title="Couldn't load projects"
-              description="Something went wrong while loading fundable projects."
+              title="We couldn't load projects"
+              description="Something went wrong on our side. Please try again. If it keeps failing, contact support."
               action={
                 <Button variant="outline" size="sm" onClick={() => refetchProjects()}>
                   Retry
@@ -285,7 +285,8 @@ export default function HomePage() {
             <Link href="/sign-up">
               <Button
                 size="lg"
-                className="border border-white/40 bg-transparent text-white hover:bg-white/10"
+                variant="outline"
+                className="border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white"
               >
                 Start a campaign
               </Button>
@@ -299,12 +300,12 @@ export default function HomePage() {
 
 function Stat({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
+    <Card className="p-5 hover:shadow-sm">
       <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
         {label}
       </div>
       <div className="mt-1 text-2xl font-semibold text-slate-900">{value}</div>
-    </div>
+    </Card>
   );
 }
 
