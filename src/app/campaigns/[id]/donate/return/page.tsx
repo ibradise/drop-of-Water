@@ -12,7 +12,14 @@ export const metadata: Metadata = {
 export default async function DonateReturnPage({ params }: { params: Params }) {
   const { id } = await params;
   return (
-    <Suspense fallback={<div className="text-sm text-slate-500">Loading…</div>}>
+    <Suspense
+      fallback={
+        <div className="mx-auto flex max-w-xl flex-col gap-6">
+          <div className="h-64 animate-pulse rounded-2xl bg-slate-100" />
+          <div className="h-32 animate-pulse rounded-2xl bg-slate-100" />
+        </div>
+      }
+    >
       <DonateReturn campaignId={id} />
     </Suspense>
   );

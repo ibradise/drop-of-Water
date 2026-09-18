@@ -27,9 +27,18 @@ type Values = z.infer<typeof schema>;
 
 export default function SignUpPage() {
   return (
-    <Suspense fallback={<div className="text-sm text-slate-500">Loading…</div>}>
+    <Suspense fallback={<AuthSkeleton />}>
       <SignUpInner />
     </Suspense>
+  );
+}
+
+function AuthSkeleton() {
+  return (
+    <div className="mx-auto flex max-w-md flex-col gap-6">
+      <div className="mx-auto h-8 w-2/3 animate-pulse rounded bg-slate-100" />
+      <div className="h-80 animate-pulse rounded-2xl bg-slate-100" />
+    </div>
   );
 }
 
@@ -64,14 +73,14 @@ function SignUpInner() {
       await signUpWithEmail(values.email, values.password);
       router.push(`/onboarding?next=${encodeURIComponent(next)}`);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Could not create your account.";
-      toast.error(message);
+      console.error("Sign up failed:", err);
+      toast.error("We couldn't create your account. This email may already be in use — try signing in, or try a different email.");
       setSubmitting(false);
     }
   });
 
   if (state.status !== "unauthenticated") {
-    return <div className="text-sm text-slate-500">Loading…</div>;
+    return <AuthSkeleton />;
   }
 
   return (

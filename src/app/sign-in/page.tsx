@@ -21,9 +21,18 @@ type Values = z.infer<typeof schema>;
 
 export default function SignInPage() {
   return (
-    <Suspense fallback={<div className="text-sm text-slate-500">Loading…</div>}>
+    <Suspense fallback={<AuthSkeleton />}>
       <SignInInner />
     </Suspense>
+  );
+}
+
+function AuthSkeleton() {
+  return (
+    <div className="mx-auto flex max-w-md flex-col gap-6">
+      <div className="mx-auto h-8 w-2/3 animate-pulse rounded bg-slate-100" />
+      <div className="h-72 animate-pulse rounded-2xl bg-slate-100" />
+    </div>
   );
 }
 
@@ -58,8 +67,8 @@ function SignInInner() {
       await signInWithEmail(values.email, values.password);
       router.push(next);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Could not sign you in.";
-      toast.error(message);
+      console.error("Sign in failed:", err);
+      toast.error("We couldn't sign you in. Please check your email and password and try again.");
       setSubmitting(null);
     }
   });
@@ -70,8 +79,8 @@ function SignInInner() {
       await signInWithGoogle();
       router.push(next);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Could not sign you in.";
-      toast.error(message);
+      console.error("Google sign in failed:", err);
+      toast.error("We couldn't sign you in with Google. Please try again.");
       setSubmitting(null);
     }
   };
@@ -82,14 +91,14 @@ function SignInInner() {
       await devSignIn(mode);
       router.push(next);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Could not sign you in.";
-      toast.error(message);
+      console.error("Demo sign in failed:", err);
+      toast.error("We couldn't sign you in. Please try again.");
       setSubmitting(null);
     }
   };
 
   if (state.status !== "unauthenticated") {
-    return <div className="text-sm text-slate-500">Loading…</div>;
+    return <AuthSkeleton />;
   }
 
   return (
@@ -184,15 +193,14 @@ function SignInInner() {
       </Button>
 
       {isMockMode ? (
-        <Card className="border-dashed bg-gradient-to-br from-sky-50/60 to-cyan-50/40">
+        <Card className="border-dashed">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-sky-600" />
-              <CardTitle className="text-base">Demo mode</CardTitle>
+              <Sparkles className="h-4 w-4 text-slate-500" />
+              <CardTitle className="text-base">Demo sign-in</CardTitle>
             </div>
             <CardDescription>
-              Backend is mocked. Use one of these demo identities instead of
-              Firebase.
+              Quick sign-in with a local test identity. No password needed.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-2">

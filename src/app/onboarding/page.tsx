@@ -49,9 +49,19 @@ type FormValues = z.infer<typeof formSchema>;
 
 export default function OnboardingPage() {
   return (
-    <Suspense fallback={<div className="text-sm text-slate-500">Loading…</div>}>
+    <Suspense fallback={<OnboardingSkeleton />}>
       <OnboardingInner />
     </Suspense>
+  );
+}
+
+function OnboardingSkeleton() {
+  return (
+    <div className="mx-auto flex max-w-2xl flex-col gap-6">
+      <div className="mx-auto h-8 w-2/3 animate-pulse rounded bg-slate-100" />
+      <div className="h-64 animate-pulse rounded-2xl bg-slate-100" />
+      <div className="h-64 animate-pulse rounded-2xl bg-slate-100" />
+    </div>
   );
 }
 
@@ -91,7 +101,7 @@ function OnboardingInner() {
   });
 
   if (state.status === "loading" || state.status === "authenticated" || state.status === "unauthenticated") {
-    return <div className="text-sm text-slate-500">Loading…</div>;
+    return <OnboardingSkeleton />;
   }
 
   const onSubmit = handleSubmit(async (values) => {
@@ -124,8 +134,8 @@ function OnboardingInner() {
       toast.success("Welcome to Drop of Water.");
       router.push(next);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Could not create your profile.";
-      toast.error(message);
+      console.error("Create profile failed:", err);
+      toast.error("We couldn't create your profile. Please check your entries and try again.");
       setSubmitting(false);
     }
   });
@@ -315,13 +325,9 @@ function OnboardingInner() {
         </Card>
 
         <div className="flex items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={() => signOut()}
-            className="text-sm text-slate-500 transition-colors hover:text-slate-900"
-          >
+          <Button type="button" variant="ghost" onClick={() => signOut()}>
             Sign out
-          </button>
+          </Button>
           <Button type="submit" size="lg" isLoading={submitting}>
             Create my profile
             <ArrowRight className="h-4 w-4" />

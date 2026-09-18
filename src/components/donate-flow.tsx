@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Heart, Info, ShieldCheck, Sparkles } from "lucide-react";
+import { Clock, Heart, Info, ShieldCheck, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { campaignsApi } from "@/lib/api/campaigns";
@@ -40,14 +40,14 @@ const formSchema = z
         ctx.addIssue({
           path: ["donorEmail"],
           code: z.ZodIssueCode.custom,
-          message: "Required for gifts at or above the review threshold",
+          message: "Please add your email — gifts of this size are reviewed by our finance team before they count.",
         });
       }
       if (!data.donorName) {
         ctx.addIssue({
           path: ["donorName"],
           code: z.ZodIssueCode.custom,
-          message: "Required for gifts at or above the review threshold",
+          message: "Please add your name — gifts of this size are reviewed by our finance team before they count.",
         });
       }
     }
@@ -135,9 +135,8 @@ export function DonateFlow({ campaignId }: { campaignId: string }) {
     },
     onError: (err) => {
       setState("idle");
-      const messages =
-        err instanceof ApiError ? err.messages : ["Couldn't submit your donation."];
-      toast.error(messages[0] ?? "Couldn't submit your donation.");
+      console.error("Submit donation failed:", err);
+      toast.error("We couldn't submit your donation. Please try again. You have not been charged.");
     },
   });
 
@@ -173,15 +172,15 @@ export function DonateFlow({ campaignId }: { campaignId: string }) {
             {is404
               ? "Campaign not found"
               : isUnexpected
-                ? "Data looked unexpected"
-                : "Couldn't load this campaign"}
+                ? "This looks different than expected"
+                : "We couldn't load this campaign"}
           </CardTitle>
           <CardDescription>
             {is404
               ? "It may have been removed or the link is wrong."
               : isUnexpected
-                ? "Please refresh; if it keeps happening, contact support."
-                : "Something went wrong talking to the API."}
+                ? "Please refresh the page to try again. If it keeps happening, contact support."
+                : "Something went wrong on our side. Please try again. If it keeps happening, contact support."}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
@@ -203,15 +202,18 @@ export function DonateFlow({ campaignId }: { campaignId: string }) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>This campaign can&apos;t accept donations yet</CardTitle>
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sky-50">
+            <Clock className="h-5 w-5 text-sky-700" />
+          </div>
+          <CardTitle>This campaign isn&apos;t accepting donations yet</CardTitle>
           <CardDescription>
-            It&apos;s still in &ldquo;{campaign.status.replace(/_/g, " ")}&rdquo; status. Check
-            back once it goes live.
+            It&apos;s still being prepared and will open soon. Please check back
+            later or explore other campaigns.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
-          <Link href={`/campaigns/${campaignId}`}>
-            <Button variant="outline">Back to campaign</Button>
+          <Link href="/campaigns">
+            <Button>Browse campaigns</Button>
           </Link>
         </CardContent>
       </Card>
@@ -262,7 +264,7 @@ export function DonateFlow({ campaignId }: { campaignId: string }) {
                     }}
                     className={`rounded-lg border px-3 py-2.5 text-sm font-medium transition-all ${
                       preset === a
-                        ? "border-slate-900 bg-slate-900 text-white shadow-sm"
+                        ? "border-sky-500 bg-sky-500 text-white shadow-sm"
                         : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
                     }`}
                     disabled={disabled}
