@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState } from "react";
-import { CalendarDays, ChevronRight, Clock, FileText, Heart } from "lucide-react";
+import { CalendarDays, ChevronRight, FileText, Heart } from "lucide-react";
 import { toast } from "sonner";
 import { adminApi } from "@/lib/api/admin";
 import { Card, CardContent, EmptyState } from "@/components/ui/card";
@@ -23,22 +23,28 @@ export default function AdminReviewQueuePage() {
   const approveUpdate = useMutation({
     mutationFn: (id: string) => adminApi.approveImpactUpdate(id, {}),
     onSuccess: () => {
-      toast.success("Published.");
+      toast.success("This update is now published and visible in public feeds.");
       qc.invalidateQueries({ queryKey: ["admin", "review-queue"] });
       qc.invalidateQueries({ queryKey: ["impact-updates"] });
     },
-    onError: () => toast.error("Couldn't approve."),
+    onError: (err) => {
+      console.error("Approve impact update failed:", err);
+      toast.error("We couldn't publish this update. Please try again.");
+    },
   });
   const rejectUpdate = useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) =>
       adminApi.rejectImpactUpdate(id, { reason }),
     onSuccess: () => {
-      toast.success("Rejected.");
+      toast.success("This update was rejected. The contributor has been notified.");
       setRejectId(null);
       qc.invalidateQueries({ queryKey: ["admin", "review-queue"] });
       qc.invalidateQueries({ queryKey: ["impact-updates"] });
     },
-    onError: () => toast.error("Couldn't reject."),
+    onError: (err) => {
+      console.error("Reject impact update failed:", err);
+      toast.error("We couldn't reject this update. Please try again.");
+    },
   });
 
   if (queueQ.isLoading) return <div className="h-64 animate-pulse rounded-xl bg-slate-100" />;
@@ -73,12 +79,10 @@ export default function AdminReviewQueuePage() {
           </Link>
         </div>
         {donations.length === 0 ? (
-          <Card>
-            <CardContent className="flex items-center gap-2 py-6 text-sm text-slate-500">
-              <Clock className="h-4 w-4" />
-              No donations are awaiting review.
-            </CardContent>
-          </Card>
+          <EmptyState
+            title="No donations awaiting review"
+            description="New gifts that need a human look will appear here."
+          />
         ) : (
           <ul className="space-y-2">
             {donations.map((d) => (
@@ -132,12 +136,10 @@ export default function AdminReviewQueuePage() {
           </Link>
         </div>
         {updates.length === 0 ? (
-          <Card>
-            <CardContent className="flex items-center gap-2 py-6 text-sm text-slate-500">
-              <Clock className="h-4 w-4" />
-              No impact updates are awaiting review.
-            </CardContent>
-          </Card>
+          <EmptyState
+            title="No updates awaiting review"
+            description="Field updates submitted by contributors will appear here."
+          />
         ) : (
           <ul className="space-y-2">
             {updates.map((u) => (
@@ -158,7 +160,6 @@ export default function AdminReviewQueuePage() {
                     <div className="flex flex-wrap gap-2 pt-2">
                       <Button
                         size="sm"
-                        className="bg-emerald-600 hover:bg-emerald-700"
                         onClick={() => approveUpdate.mutate(u._id)}
                         isLoading={approveUpdate.isPending && approveUpdate.variables === u._id}
                       >

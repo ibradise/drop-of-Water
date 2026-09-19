@@ -278,7 +278,7 @@ export default function NewCampaignPage() {
                 type="text"
                 placeholder="e.g. Help us dig a well in Debre Berhan"
                 {...register("title")}
-                className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
               />
               {errors.title ? (
                 <p className="mt-1 text-xs text-rose-600">{errors.title.message}</p>
@@ -293,7 +293,7 @@ export default function NewCampaignPage() {
                 type="text"
                 placeholder="One line that shows up on the campaign card"
                 {...register("summary")}
-                className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
               />
             </div>
             <div>
@@ -305,7 +305,7 @@ export default function NewCampaignPage() {
                 rows={5}
                 placeholder="Tell donors why this campaign matters. Markdown is OK."
                 {...register("story")}
-                className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
               />
             </div>
           </CardContent>
@@ -326,7 +326,7 @@ export default function NewCampaignPage() {
                 min={1}
                 step={1}
                 {...register("goalAmount", { valueAsNumber: true })}
-                className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
               />
               {errors.goalAmount ? (
                 <p className="mt-1 text-xs text-rose-600">{errors.goalAmount.message}</p>
@@ -346,7 +346,7 @@ export default function NewCampaignPage() {
                 min={0}
                 step={1}
                 {...register("dropsGoal", { valueAsNumber: true })}
-                className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
               />
             </div>
             <div>
@@ -357,7 +357,7 @@ export default function NewCampaignPage() {
                 id="startDate"
                 type="date"
                 {...register("startDate")}
-                className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
               />
             </div>
             <div>
@@ -368,7 +368,7 @@ export default function NewCampaignPage() {
                 id="endDate"
                 type="date"
                 {...register("endDate")}
-                className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
               />
               {errors.endDate ? (
                 <p className="mt-1 text-xs text-rose-600">{errors.endDate.message}</p>
@@ -383,7 +383,7 @@ export default function NewCampaignPage() {
                 rows={3}
                 placeholder={"https://…\nhttps://…"}
                 {...register("photosText")}
-                className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
               />
             </div>
             <label className="flex items-center gap-2 text-sm text-slate-700 sm:col-span-2">

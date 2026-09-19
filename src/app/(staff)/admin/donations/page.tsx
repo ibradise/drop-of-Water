@@ -8,8 +8,10 @@ import { adminApi } from "@/lib/api/admin";
 import { Card, CardContent, EmptyState } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { DonationStatusBadge } from "@/components/ui/status-badges";
 import { Money } from "@/components/ui/money";
 import { PAYMENT_METHODS, type DonationStatus } from "@/lib/enums";
+import { formatDateTime } from "@/lib/format-date";
 
 const STATUS_FILTERS: DonationStatus[] = [
   "pending",
@@ -100,7 +102,8 @@ export default function AdminDonationsPage() {
         </div>
       ) : q.isError ? (
         <EmptyState
-          title="Couldn't load donations"
+          title="We couldn't load donations"
+          description="Something went wrong on our side. Please try again. If it keeps failing, contact support."
           action={
             <Button variant="outline" onClick={() => q.refetch()}>
               Retry
@@ -108,7 +111,22 @@ export default function AdminDonationsPage() {
           }
         />
       ) : !q.data ? null : q.data.data.length === 0 ? (
-        <EmptyState title="No donations match the filters" />
+        <EmptyState
+          title="No donations match the filters"
+          description="Try clearing or changing your filters."
+          action={
+            <Button
+              variant="outline"
+              onClick={() => {
+                setStatus(null);
+                setHighValue(false);
+                setPaymentMethod("");
+              }}
+            >
+              Clear filters
+            </Button>
+          }
+        />
       ) : (
         <Card>
           <ul className="divide-y divide-slate-100">
@@ -120,20 +138,7 @@ export default function AdminDonationsPage() {
                 >
                   <div className="flex flex-col gap-0.5">
                     <div className="flex items-center gap-2">
-                      <Badge
-                        tone={
-                          d.status === "completed"
-                            ? "success"
-                            : d.status === "manual_review"
-                              ? "warning"
-                              : d.status === "refunded" || d.status === "failed"
-                                ? "danger"
-                                : "info"
-                        }
-                        className="capitalize"
-                      >
-                        {d.status.replace(/_/g, " ")}
-                      </Badge>
+                      <DonationStatusBadge status={d.status} />
                       {d.requiresManualReview ? (
                         <Badge tone="warning">high-value</Badge>
                       ) : null}
@@ -146,7 +151,7 @@ export default function AdminDonationsPage() {
                       </span>
                     </div>
                     <div className="text-xs text-slate-500">
-                      {new Date(d.createdAt).toLocaleString()}
+                      {formatDateTime(d.createdAt)}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">

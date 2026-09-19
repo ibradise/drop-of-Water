@@ -17,6 +17,7 @@ import { type UpdateCampaignInput } from "@/lib/schemas/campaign";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Money } from "@/components/ui/money";
+import { formatDate } from "@/lib/format-date";
 import { CampaignStatusBadge } from "@/components/ui/status-badges";
 import { ProgressBar } from "@/components/progress-bar";
 import { Badge } from "@/components/ui/badge";
@@ -98,15 +99,15 @@ function ManageCampaign({ id }: { id: string }) {
               {is404
                 ? "Campaign not found"
                 : isUnexpected
-                  ? "Data looked unexpected"
-                  : "Couldn't load this campaign"}
+                  ? "This looks different than expected"
+                  : "We couldn't load this campaign"}
             </CardTitle>
             <CardDescription>
               {is404
                 ? "It may have been removed or the link is wrong."
                 : isUnexpected
-                  ? "Please refresh; if it keeps happening, contact support."
-                  : "Please try again."}
+                  ? "Please refresh the page to try again. If it keeps happening, contact support."
+                  : "Something went wrong on our side. Please try again. If it keeps happening, contact support."}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
@@ -229,7 +230,7 @@ function ManageCampaign({ id }: { id: string }) {
               photos: photos.length > 0 ? photos : undefined,
             };
             const updated = await campaignsApi.update(c._id, payload);
-            toast.success("Saved.");
+            toast.success("Your campaign changes have been saved.");
             qc.setQueryData(["campaigns", "get", c._id], updated);
             qc.invalidateQueries({ queryKey: ["campaigns"] });
             qc.invalidateQueries({ queryKey: ["admin", "campaigns"] });
@@ -260,7 +261,7 @@ function ManageCampaign({ id }: { id: string }) {
                     {p.userId === c.createdBy ? "You (creator)" : p.userId}
                   </span>
                   <span className="text-xs text-slate-500">
-                    joined {new Date(p.joinedAt).toLocaleDateString()}
+                    joined {formatDate(p.joinedAt)}
                   </span>
                 </div>
                 <Badge tone="neutral" className="capitalize">
@@ -298,13 +299,12 @@ function SubmitPanel({
   const submit = useMutation({
     mutationFn: () => campaignsApi.submit(id),
     onSuccess: () => {
-      toast.success("Submitted for approval.");
+      toast.success("Your campaign was sent for review. We'll notify you once a manager approves it.");
       onSubmitted();
     },
     onError: (err) => {
-      const msg =
-        err instanceof ApiError ? err.messages[0] : "Couldn't submit.";
-      toast.error(msg);
+      console.error("Submit campaign failed:", err);
+      toast.error("We couldn't submit your campaign for approval. Please try again. If it keeps failing, contact support.");
     },
   });
   return (
@@ -339,13 +339,12 @@ function JoinPanel({
   const join = useMutation({
     mutationFn: () => campaignsApi.join(id, role),
     onSuccess: () => {
-      toast.success("Joined as a co-fundraiser.");
+      toast.success("You're now a co-fundraiser on this campaign. Share it to start raising together.");
       onJoined();
     },
     onError: (err) => {
-      const msg =
-        err instanceof ApiError ? err.messages[0] : "Couldn't join.";
-      toast.error(msg);
+      console.error("Join campaign failed:", err);
+      toast.error("We couldn't add you to this campaign. Please try again.");
     },
   });
   return (
@@ -367,7 +366,7 @@ function JoinPanel({
             maxLength={50}
             value={role}
             onChange={(e) => setRole(e.target.value)}
-            className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
             placeholder="co_fundraiser"
           />
         </div>
@@ -435,7 +434,7 @@ function EditPanel({
             <input
               type="text"
               {...register("title")}
-              className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
             />
             {errors.title ? (
               <p className="mt-1 text-xs text-rose-600">{errors.title.message}</p>
@@ -446,7 +445,7 @@ function EditPanel({
             <input
               type="text"
               {...register("summary")}
-              className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
             />
           </div>
           <div className="sm:col-span-2">
@@ -454,7 +453,7 @@ function EditPanel({
             <textarea
               rows={4}
               {...register("story")}
-              className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
             />
           </div>
           <div>
@@ -464,7 +463,7 @@ function EditPanel({
               min={1}
               step={1}
               {...register("goalAmount", { valueAsNumber: true })}
-              className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
             />
             {errors.goalAmount ? (
               <p className="mt-1 text-xs text-rose-600">{errors.goalAmount.message}</p>
@@ -477,7 +476,7 @@ function EditPanel({
               min={0}
               step={1}
               {...register("dropsGoal", { valueAsNumber: true })}
-              className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
             />
           </div>
           <div>
@@ -485,7 +484,7 @@ function EditPanel({
             <input
               type="date"
               {...register("startDate")}
-              className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
             />
           </div>
           <div>
@@ -493,7 +492,7 @@ function EditPanel({
             <input
               type="date"
               {...register("endDate")}
-              className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
             />
           </div>
           <div className="sm:col-span-2">
@@ -503,7 +502,7 @@ function EditPanel({
             <textarea
               rows={2}
               {...register("photosText")}
-              className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
             />
           </div>
           <label className="flex items-center gap-2 text-sm text-slate-700 sm:col-span-2">
@@ -543,11 +542,14 @@ function DeletePanel({
   const remove = useMutation({
     mutationFn: () => campaignsApi.remove(id),
     onSuccess: () => {
-      toast.success("Campaign deleted.");
+      toast.success("This campaign has been deleted. You're back at your campaign list.");
       setConfirmOpen(false);
       onDeleted();
     },
-    onError: () => toast.error("Couldn't delete the campaign."),
+    onError: (err) => {
+      console.error("Delete campaign failed:", err);
+      toast.error("We couldn't delete this campaign. Please try again. If it keeps failing, contact support.");
+    },
   });
   const [confirmOpen, setConfirmOpen] = useState(false);
   return (
@@ -560,8 +562,7 @@ function DeletePanel({
           </p>
         </div>
         <Button
-          variant="outline"
-          className="border-rose-300 text-rose-700 hover:bg-rose-100"
+          variant="danger"
           onClick={() => setConfirmOpen(true)}
           isLoading={remove.isPending}
         >

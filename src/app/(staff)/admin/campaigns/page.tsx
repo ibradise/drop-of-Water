@@ -46,7 +46,7 @@ function AdminCampaignsInner() {
   const approve = useMutation({
     mutationFn: (id: string) => campaignsApi.approve(id),
     onSuccess: () => {
-      toast.success("Campaign approved.");
+      toast.success("This campaign is now live and visible to everyone.");
       qc.invalidateQueries({ queryKey: ["admin", "campaigns"] });
       qc.invalidateQueries({ queryKey: ["admin", "dashboard"] });
       qc.invalidateQueries({ queryKey: ["admin", "review-queue"] });
@@ -59,7 +59,7 @@ function AdminCampaignsInner() {
   const reject = useMutation({
     mutationFn: (id: string) => campaignsApi.reject(id),
     onSuccess: () => {
-      toast.success("Campaign rejected.");
+      toast.success("This campaign was sent back to draft. The creator can edit and resubmit it.");
       qc.invalidateQueries({ queryKey: ["admin", "campaigns"] });
       qc.invalidateQueries({ queryKey: ["admin", "dashboard"] });
       qc.invalidateQueries({ queryKey: ["admin", "review-queue"] });
@@ -107,7 +107,8 @@ function AdminCampaignsInner() {
         </div>
       ) : q.isError ? (
         <EmptyState
-          title="Couldn't load campaigns"
+          title="We couldn't load campaigns"
+          description="Something went wrong on our side. Please try again. If it keeps failing, contact support."
           action={
             <Button variant="outline" onClick={() => q.refetch()}>
               Retry
@@ -115,7 +116,15 @@ function AdminCampaignsInner() {
           }
         />
       ) : !q.data ? null : q.data.data.length === 0 ? (
-        <EmptyState title="No campaigns match the filter" />
+        <EmptyState
+          title="No campaigns match the filter"
+          description="Try clearing or changing your filter."
+          action={
+            <Button variant="outline" onClick={() => setStatus(null)}>
+              Clear filter
+            </Button>
+          }
+        />
       ) : (
         <Card>
           <ul className="divide-y divide-slate-100">

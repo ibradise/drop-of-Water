@@ -39,7 +39,11 @@ function ReviewInner({ id }: { id: string }) {
     mutationFn: ({ approve, note }: { approve: boolean; note?: string }) =>
       adminApi.reviewDonation(id, { approve, note }),
     onSuccess: (_, { approve }) => {
-      toast.success(approve ? "Donation approved." : "Donation rejected.");
+      toast.success(
+        approve
+          ? "Donation approved and credited toward the campaign total."
+          : "Donation rejected and marked for refund. Remember to issue the gateway refund manually.",
+      );
       qc.invalidateQueries({ queryKey: ["admin", "donations"] });
       qc.invalidateQueries({ queryKey: ["admin", "review-queue"] });
       qc.invalidateQueries({ queryKey: ["admin", "dashboard"] });
@@ -187,7 +191,6 @@ function ReviewInner({ id }: { id: string }) {
           {rejectLabel}
         </Button>
         <Button
-          className="bg-emerald-600 hover:bg-emerald-700"
           onClick={() => setDecision({ approve: true })}
         >
           <CheckCircle2 className="h-4 w-4" />

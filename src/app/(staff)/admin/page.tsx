@@ -21,7 +21,8 @@ export default function AdminDashboardPage() {
   if (summaryQ.isError) {
     return (
       <EmptyState
-        title="Couldn't load the dashboard"
+        title="We couldn't load the dashboard"
+        description="Something went wrong on our side. Please try again. If it keeps failing, contact support."
         action={
           <Button variant="outline" onClick={() => summaryQ.refetch()}>
             Retry
@@ -68,7 +69,7 @@ export default function AdminDashboardPage() {
         />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2">
         <BreakdownCard
           title="Projects"
           icon={<Droplets className="h-4 w-4" />}
