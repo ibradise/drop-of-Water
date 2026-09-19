@@ -23,24 +23,30 @@ export default function AdminPendingUpdatesPage() {
   const approve = useMutation({
     mutationFn: (id: string) => adminApi.approveImpactUpdate(id, {}),
     onSuccess: () => {
-      toast.success("Published.");
+      toast.success("This update is now published and visible in public feeds.");
       qc.invalidateQueries({ queryKey: ["admin", "impact-updates"] });
       qc.invalidateQueries({ queryKey: ["admin", "review-queue"] });
       qc.invalidateQueries({ queryKey: ["impact-updates"] });
     },
-    onError: () => toast.error("Couldn't approve."),
+    onError: (err) => {
+      console.error("Approve impact update failed:", err);
+      toast.error("We couldn't publish this update. Please try again.");
+    },
   });
   const reject = useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) =>
       adminApi.rejectImpactUpdate(id, { reason }),
     onSuccess: () => {
-      toast.success("Rejected.");
+      toast.success("This update was rejected. The contributor has been notified.");
       setRejectId(null);
       qc.invalidateQueries({ queryKey: ["admin", "impact-updates"] });
       qc.invalidateQueries({ queryKey: ["admin", "review-queue"] });
       qc.invalidateQueries({ queryKey: ["impact-updates"] });
     },
-    onError: () => toast.error("Couldn't reject."),
+    onError: (err) => {
+      console.error("Reject impact update failed:", err);
+      toast.error("We couldn't reject this update. Please try again.");
+    },
   });
   const [rejectId, setRejectId] = useState<string | null>(null);
 
@@ -63,7 +69,8 @@ export default function AdminPendingUpdatesPage() {
         </div>
       ) : q.isError ? (
         <EmptyState
-          title="Couldn't load pending updates"
+          title="We couldn't load pending updates"
+          description="Something went wrong on our side. Please try again. If it keeps failing, contact support."
           action={
             <Button variant="outline" onClick={() => q.refetch()}>
               Retry
@@ -92,7 +99,6 @@ export default function AdminPendingUpdatesPage() {
                   <div className="flex flex-wrap gap-2 pt-2">
                     <Button
                       size="sm"
-                      className="bg-emerald-600 hover:bg-emerald-700"
                       onClick={() => approve.mutate(u._id)}
                       isLoading={approve.isPending && approve.variables === u._id}
                     >

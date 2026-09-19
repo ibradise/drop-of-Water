@@ -201,7 +201,7 @@ export default function NewCampaignPage() {
             ) : projectsQ.isError ? (
               <EmptyState
                 title="Couldn't load fundable projects"
-                description="Something went wrong talking to the API."
+                description="Something went wrong on our side. Please try again. If it keeps failing, contact support."
                 action={
                   <Button variant="outline" onClick={() => projectsQ.refetch()}>
                     Retry

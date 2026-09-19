@@ -16,7 +16,7 @@ const ACTIONS = [
   { href: "/me/donations", label: "See your donation history", icon: Heart },
   { href: "/me/certificates", label: "Generate or share a certificate", icon: Award },
   { href: "/me/campaigns", label: "Run your own campaign", icon: Sparkles },
-  { href: "/me/notifications", label: "Notifications and device tokens", icon: ArrowRight },
+  { href: "/me/notifications", label: "Notifications", icon: ArrowRight },
 ];
 
 export default function MePage() {

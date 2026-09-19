@@ -11,6 +11,7 @@ type ConfirmDialogProps = {
   title: string;
   description?: string;
   confirmLabel?: string;
+  cancelLabel?: string;
   danger?: boolean;
   reasonLabel?: string;
   reasonPlaceholder?: string;
@@ -25,6 +26,7 @@ export function ConfirmDialog({
   title,
   description,
   confirmLabel = "Confirm",
+  cancelLabel = "Cancel",
   danger = false,
   reasonLabel,
   reasonPlaceholder,
@@ -85,7 +87,7 @@ export function ConfirmDialog({
         ) : null}
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={close} disabled={isPending}>
-            Cancel
+            {cancelLabel}
           </Button>
           <Button
             onClick={confirm}

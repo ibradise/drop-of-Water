@@ -10,6 +10,7 @@ import { ApiError } from "@/lib/api/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { DonationStatusBadge } from "@/components/ui/status-badges";
 import { Money } from "@/components/ui/money";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { use, useState } from "react";
@@ -54,8 +55,8 @@ function ReviewInner({ id }: { id: string }) {
       router.push("/admin/donations");
     },
     onError: (err) => {
-      const msg = err instanceof ApiError ? err.messages[0] : "Couldn't record the decision.";
-      toast.error(msg);
+      console.error("Record donation decision failed:", err);
+      toast.error("We couldn't record your decision. Please try again.");
     },
   });
   const [decision, setDecision] = useState<null | { approve: boolean }>(null);
@@ -72,17 +73,17 @@ function ReviewInner({ id }: { id: string }) {
           <CardHeader>
             <CardTitle>
               {is404
-                ? "Couldn't load this donation"
+                ? "We couldn't find this donation"
                 : isUnexpected
-                  ? "Data looked unexpected"
-                  : "Couldn't load this donation"}
+                  ? "This looks different than expected"
+                  : "We couldn't load this donation"}
             </CardTitle>
             <CardDescription>
               {is404
-                ? "It may have been deleted, or it sits beyond the first page of results."
+                ? "It may have been removed or the link is wrong. Try going back to the donations list."
                 : isUnexpected
-                  ? "Please refresh; if it keeps happening, contact support."
-                  : "Something went wrong talking to the API."}
+                  ? "Please refresh the page to try again. If it keeps happening, contact support."
+                  : "Something went wrong on our side. Please try again. If it keeps happening, contact support."}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
@@ -116,20 +117,7 @@ function ReviewInner({ id }: { id: string }) {
 
       <header className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
-          <Badge
-            tone={
-              d.status === "manual_review"
-                ? "warning"
-                : d.status === "completed"
-                  ? "success"
-                  : d.status === "refunded" || d.status === "failed"
-                    ? "danger"
-                    : "info"
-            }
-            className="capitalize"
-          >
-            {d.status.replace(/_/g, " ")}
-          </Badge>
+          <DonationStatusBadge status={d.status} />
           {d.requiresManualReview ? <Badge tone="warning">high-value</Badge> : null}
         </div>
         <h1 className="text-2xl font-bold text-slate-900">

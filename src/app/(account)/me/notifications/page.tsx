@@ -47,8 +47,7 @@ export default function MeNotificationsPage() {
         <h2 className="text-xl font-semibold text-slate-900">Notifications</h2>
         <p className="text-sm text-slate-500">
           Your in-app notification history (newest first, up to 50). Push is opt-in
-          — register a Firebase Cloud Messaging device token below to receive
-          updates on your phone.
+          — register this device below to receive updates on your phone.
         </p>
       </header>
 
@@ -56,8 +55,7 @@ export default function MeNotificationsPage() {
         <CardContent className="flex flex-col gap-3">
           <h3 className="text-sm font-semibold text-slate-900">Push notifications</h3>
           <p className="text-xs text-slate-500">
-            In dev mode, paste any string as a fake device token. The real Firebase
-            SDK will provide the real token in production.
+            Paste your device token below. In a development build, any test string works.
           </p>
           <form
             className="flex flex-col gap-2 sm:flex-row"
@@ -71,7 +69,7 @@ export default function MeNotificationsPage() {
               type="text"
               value={tokenInput}
               onChange={(e) => setTokenInput(e.target.value)}
-              placeholder="FCM device token (or any string in dev)"
+              placeholder="Device token (any test string works in dev)"
               aria-label="Device token"
               className="flex-1 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
             />

@@ -276,6 +276,7 @@ function ManageCampaign({ id }: { id: string }) {
       {canDelete ? (
         <DeletePanel
           id={c._id}
+          title={c.title}
           onDeleted={() => {
             qc.invalidateQueries({ queryKey: ["campaigns"] });
             qc.invalidateQueries({ queryKey: ["admin", "campaigns"] });
@@ -534,9 +535,11 @@ function EditPanel({
 
 function DeletePanel({
   id,
+  title,
   onDeleted,
 }: {
   id: string;
+  title: string;
   onDeleted: () => void;
 }) {
   const remove = useMutation({
@@ -558,7 +561,7 @@ function DeletePanel({
         <div>
           <h3 className="text-sm font-semibold text-rose-900">Delete this campaign</h3>
           <p className="text-xs text-rose-700">
-            Soft delete. The campaign is removed from listings but kept in the database.
+            This removes the campaign from public lists. Donations already made are kept for records.
           </p>
         </div>
         <Button
@@ -574,9 +577,9 @@ function DeletePanel({
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
         onConfirm={() => remove.mutate()}
-        title="Delete this campaign?"
-        description="The campaign is removed from listings but kept in the database. This cannot be undone from the UI."
-        confirmLabel="Delete"
+        title={`Delete “${title}”?`}
+        description="This removes the campaign from all public lists. You won't be able to bring it back yourself — contact support if you delete by mistake."
+        confirmLabel="Yes, delete"
         danger
         isPending={remove.isPending}
       />

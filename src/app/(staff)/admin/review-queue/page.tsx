@@ -51,7 +51,8 @@ export default function AdminReviewQueuePage() {
   if (queueQ.isError)
     return (
       <EmptyState
-        title="Couldn't load the review queue"
+        title="We couldn't load the review queue"
+        description="Something went wrong on our side. Please try again. If it keeps failing, contact support."
         action={
           <Button variant="outline" onClick={() => queueQ.refetch()}>
             Retry

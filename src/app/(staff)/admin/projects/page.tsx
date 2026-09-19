@@ -68,7 +68,8 @@ export default function AdminProjectsPage() {
         </div>
       ) : q.isError ? (
         <EmptyState
-          title="Couldn't load projects"
+          title="We couldn't load projects"
+          description="Something went wrong on our side. Please try again. If it keeps failing, contact support."
           action={
             <Button variant="outline" onClick={() => q.refetch()}>
               Retry
@@ -76,7 +77,15 @@ export default function AdminProjectsPage() {
           }
         />
       ) : !q.data ? null : q.data.data.length === 0 ? (
-        <EmptyState title="No projects match the filter" />
+        <EmptyState
+          title="No projects match the filter"
+          description="Try clearing or changing your filter."
+          action={
+            <Button variant="outline" onClick={() => setStatus(null)}>
+              Clear filter
+            </Button>
+          }
+        />
       ) : (
         <Card>
           <ul className="divide-y divide-slate-100">

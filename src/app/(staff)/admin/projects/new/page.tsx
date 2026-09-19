@@ -8,9 +8,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Droplets } from "lucide-react";
 import { projectsApi } from "@/lib/api/projects";
-import { ApiError } from "@/lib/api/client";
 import { type CreateProjectInput } from "@/lib/schemas/project";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -106,12 +104,13 @@ export default function AdminNewProjectPage() {
       return projectsApi.create(payload);
     },
     onSuccess: (project) => {
-      toast.success("Project created as a draft.");
+      toast.success("Your project was created as a draft. You can now add milestones, costs, and photos.");
       qc.invalidateQueries({ queryKey: ["admin", "projects"] });
       router.push(`/admin/projects/${project._id}/manage`);
     },
     onError: (err) => {
-      toast.error(err instanceof ApiError ? err.messages[0] : "Couldn't create the project.");
+      console.error("Create project failed:", err);
+      toast.error("We couldn't create this project. Please check your entries and try again.");
     },
   });
 
@@ -122,13 +121,13 @@ export default function AdminNewProjectPage() {
       </Link>
 
       <header className="flex flex-col gap-2">
-        <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-sky-700">
-          <Droplets className="h-4 w-4" /> New project
+        <span className="text-xs font-semibold uppercase tracking-wide text-sky-700">
+          New project
         </span>
-        <h2 className="text-2xl font-bold tracking-tight text-slate-900">
+        <h2 className="text-xl font-semibold tracking-tight text-slate-900">
           Create a water project
         </h2>
-        <p className="text-slate-600">
+        <p className="text-sm text-slate-500">
           Projects start as a draft. Add milestones, costs, and photos after creation.
         </p>
       </header>
@@ -262,9 +261,16 @@ export default function AdminNewProjectPage() {
               />
             </Field>
 
-            <Button type="submit" size="lg" isLoading={create.isPending} className="self-start">
-              Create project
-            </Button>
+            <div className="flex items-center gap-2">
+              <Link href="/admin/projects">
+                <Button type="button" variant="outline" size="lg">
+                  Cancel
+                </Button>
+              </Link>
+              <Button type="submit" size="lg" isLoading={create.isPending}>
+                Create project
+              </Button>
+            </div>
           </form>
         </CardContent>
       </Card>

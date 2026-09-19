@@ -63,7 +63,8 @@ export default function AdminUsersPage() {
         </div>
       ) : q.isError ? (
         <EmptyState
-          title="Couldn't load users"
+          title="We couldn't load users"
+          description="Something went wrong on our side. Please try again. If it keeps failing, contact support."
           action={
             <Button variant="outline" onClick={() => q.refetch()}>
               Retry
@@ -71,7 +72,15 @@ export default function AdminUsersPage() {
           }
         />
       ) : !q.data ? null : q.data.data.length === 0 ? (
-        <EmptyState title="No users match the filter" />
+        <EmptyState
+          title="No users match the filter"
+          description="Try clearing or changing your filter."
+          action={
+            <Button variant="outline" onClick={() => setRoleFilter("")}>
+              Clear filter
+            </Button>
+          }
+        />
       ) : (
         <div className="flex flex-col gap-2">
           {q.data.data.map((u) => (
@@ -114,10 +123,13 @@ function UserRow({
   const save = useMutation({
     mutationFn: (payload: EditorState) => usersApi.adminUpdate(user._id, payload),
     onSuccess: () => {
-      toast.success("User updated.");
+      toast.success(`Changes to ${user.name} have been saved.`);
       onSaved();
     },
-    onError: () => toast.error("Couldn't update user."),
+    onError: (err) => {
+      console.error("Update user failed:", err);
+      toast.error("We couldn't save changes to this user. Please try again.");
+    },
   });
 
   const toggleRole = (role: Role) => {
@@ -139,6 +151,8 @@ function UserRow({
       <button
         type="button"
         onClick={onToggle}
+        aria-expanded={expanded}
+        aria-label={`${expanded ? "Hide" : "Show"} editor for ${user.name}`}
         className="flex w-full items-center justify-between gap-3 px-5 py-3 text-left"
       >
         <div className="min-w-0 flex-1">

@@ -33,8 +33,8 @@ export function FeaturedCampaigns() {
           </Link>
         </div>
         <EmptyState
-          title="Couldn't load campaigns"
-          description="Something went wrong talking to the API."
+          title="We couldn't load campaigns"
+          description="Something went wrong on our side. Please try again. If it keeps failing, contact support."
           action={
             <Button variant="outline" onClick={() => refetch()}>
               Retry

@@ -50,15 +50,15 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
             {is404
               ? "Project not found"
               : isUnexpected
-                ? "Data looked unexpected"
-                : "Couldn't load this project"}
+                ? "This looks different than expected"
+                : "We couldn't load this project"}
           </CardTitle>
           <CardDescription>
             {is404
               ? "It may have been removed or the link is wrong."
               : isUnexpected
-                ? "Please refresh; if it keeps happening, contact support."
-                : "Something went wrong talking to the API."}
+                ? "Please refresh the page to try again. If it keeps happening, contact support."
+                : "Something went wrong on our side. Please try again. If it keeps happening, contact support."}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">

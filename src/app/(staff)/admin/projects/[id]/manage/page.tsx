@@ -36,67 +36,82 @@ function Inner({ id }: { id: string }) {
     mutationFn: (body: { title: string; description?: string }) =>
       projectsApi.addMilestones(id, body),
     onSuccess: () => {
-      toast.success("Milestone added.");
+      toast.success("New milestone added to this project.");
       qc.invalidateQueries({ queryKey: ["projects", "get", id] });
       qc.invalidateQueries({ queryKey: ["projects", "list"] });
       qc.invalidateQueries({ queryKey: ["admin", "projects"] });
       qc.invalidateQueries({ queryKey: ["admin", "dashboard"] });
       setNewMilestone({ title: "", description: "" });
     },
-    onError: (e) => toast.error(e instanceof ApiError ? e.messages[0] : "Couldn't add."),
+    onError: (e) => {
+      console.error("Add milestone failed:", e);
+      toast.error("We couldn't add this milestone. Please check the title and try again.");
+    },
   });
   const removeMilestone = useMutation({
     mutationFn: (mid: string) => projectsApi.removeMilestone(id, mid),
     onSuccess: () => {
-      toast.success("Milestone removed.");
+      toast.success("Milestone removed from this project.");
       setRemoveMilestoneId(null);
       qc.invalidateQueries({ queryKey: ["projects", "get", id] });
       qc.invalidateQueries({ queryKey: ["projects", "list"] });
       qc.invalidateQueries({ queryKey: ["admin", "projects"] });
       qc.invalidateQueries({ queryKey: ["admin", "dashboard"] });
     },
-    onError: () => toast.error("Couldn't remove."),
+    onError: (e) => {
+      console.error("Remove milestone failed:", e);
+      toast.error("We couldn't remove this milestone. Please try again.");
+    },
   });
 
   const addCostItem = useMutation({
     mutationFn: (body: { item: string; amount: number }) =>
       projectsApi.addCostItems(id, body),
     onSuccess: () => {
-      toast.success("Cost item added.");
+      toast.success("New cost item added to the budget.");
       qc.invalidateQueries({ queryKey: ["projects", "get", id] });
       qc.invalidateQueries({ queryKey: ["projects", "list"] });
       qc.invalidateQueries({ queryKey: ["admin", "projects"] });
       qc.invalidateQueries({ queryKey: ["admin", "dashboard"] });
       setNewCostItem({ item: "", amount: 0 });
     },
-    onError: (e) => toast.error(e instanceof ApiError ? e.messages[0] : "Couldn't add."),
+    onError: (e) => {
+      console.error("Add cost item failed:", e);
+      toast.error("We couldn't add this cost item. Please check the name and amount and try again.");
+    },
   });
 
   const addPhotos = useMutation({
     mutationFn: (urls: string[]) => projectsApi.addPhotos(id, urls),
     onSuccess: () => {
-      toast.success("Photos added.");
+      toast.success("New photos added to this project.");
       qc.invalidateQueries({ queryKey: ["projects", "get", id] });
       qc.invalidateQueries({ queryKey: ["projects", "list"] });
       qc.invalidateQueries({ queryKey: ["admin", "projects"] });
       qc.invalidateQueries({ queryKey: ["admin", "dashboard"] });
       setNewPhotos("");
     },
-    onError: () => toast.error("Couldn't add photos."),
+    onError: (e) => {
+      console.error("Add photos failed:", e);
+      toast.error("We couldn't add these photos. Please check the URLs (one per line, starting with https://) and try again.");
+    },
   });
 
   const addProofs = useMutation({
     mutationFn: (items: Array<{ type: string; url: string }>) =>
       projectsApi.addProofs(id, items),
     onSuccess: () => {
-      toast.success("Proofs added.");
+      toast.success("New impact evidence added to this project.");
       qc.invalidateQueries({ queryKey: ["projects", "get", id] });
       qc.invalidateQueries({ queryKey: ["projects", "list"] });
       qc.invalidateQueries({ queryKey: ["admin", "projects"] });
       qc.invalidateQueries({ queryKey: ["admin", "dashboard"] });
       setNewProofs("");
     },
-    onError: () => toast.error("Couldn't add proofs."),
+    onError: (e) => {
+      console.error("Add proofs failed:", e);
+      toast.error("We couldn't add this proof. Use the format 'photo | https://…' (one per line) and try again.");
+    },
   });
 
   const [newMilestone, setNewMilestone] = useState({ title: "", description: "" });
@@ -117,15 +132,15 @@ function Inner({ id }: { id: string }) {
             {is404
               ? "Project not found"
               : isUnexpected
-                ? "Data looked unexpected"
-                : "Couldn't load this project"}
+                ? "This looks different than expected"
+                : "We couldn't load this project"}
           </CardTitle>
           <CardDescription>
             {is404
               ? "It may have been removed or the link is wrong."
               : isUnexpected
-                ? "Please refresh; if it keeps happening, contact support."
-                : "Something went wrong talking to the API."}
+                ? "Please refresh the page to try again. If it keeps happening, contact support."
+                : "Something went wrong on our side. Please try again. If it keeps happening, contact support."}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
@@ -307,7 +322,7 @@ function Inner({ id }: { id: string }) {
               }
               placeholder="Amount (ETB)"
               aria-label="Cost item amount in ETB"
-              className="w-32 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+              className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 sm:w-32"
             />
             <Button type="submit" isLoading={addCostItem.isPending}>
               <Plus className="h-4 w-4" />
@@ -431,8 +446,9 @@ function Inner({ id }: { id: string }) {
           if (removeMilestoneId) removeMilestone.mutate(removeMilestoneId);
         }}
         title="Remove this milestone?"
-        description="The milestone is removed from the project. This cannot be undone from the UI."
-        confirmLabel="Remove"
+        description="This removes the milestone from the project right away. You can add it back manually, but its history will be lost."
+        confirmLabel="Yes, remove"
+        cancelLabel="Keep"
         danger
         isPending={removeMilestone.isPending}
       />
