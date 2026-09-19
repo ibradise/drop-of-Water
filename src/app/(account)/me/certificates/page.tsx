@@ -38,7 +38,7 @@ export default function MeCertificatesPage() {
     },
     onError: (err) => {
       console.error("Generate certificate failed:", err);
-      toast.error("We couldn't generate your certificate right now. Please try again.");
+      toast.error("We couldn't generate your certificate right now. Note the bronze tier needs 1,000 ETB raised or 10 volunteer hours — otherwise please try again.");
       setGenerating(null);
     },
   });

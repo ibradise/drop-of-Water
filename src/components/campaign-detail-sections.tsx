@@ -1,4 +1,4 @@
-import { CalendarDays, MapPin, Sparkles, Users } from "lucide-react";
+import { CalendarDays, MapPin, Sparkles, UserPlus, Users } from "lucide-react";
 import type { Campaign } from "@/lib/schemas/campaign";
 import { Card, CardContent } from "@/components/ui/card";
 import { Money } from "@/components/ui/money";
@@ -8,7 +8,7 @@ import { ProgressBar } from "@/components/progress-bar";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
-export function CampaignHero({ campaign }: { campaign: Campaign }) {
+export function CampaignHero({ campaign, joinHref }: { campaign: Campaign; joinHref: string | null }) {
   const end = campaign.endDate ? new Date(campaign.endDate) : null;
   const now = new Date();
   const daysLeft = end ? Math.max(0, Math.ceil((end.getTime() - now.getTime()) / 86_400_000)) : null;
@@ -75,6 +75,14 @@ export function CampaignHero({ campaign }: { campaign: Campaign }) {
               View project
             </Button>
           </Link>
+          {joinHref ? (
+            <Link href={joinHref}>
+              <Button size="lg" variant="outline" className="w-full">
+                <UserPlus className="h-4 w-4" />
+                Join as co-fundraiser
+              </Button>
+            </Link>
+          ) : null}
         </div>
       </div>
     </div>

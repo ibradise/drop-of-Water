@@ -13,6 +13,9 @@
 # testing
 /coverage
 
+# probe scripts + real-backend captures (live credentials and production PII)
+/test/
+
 # next.js
 /.next/
 /out/

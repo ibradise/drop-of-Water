@@ -18,6 +18,17 @@ type MilestonesBody = MilestoneInput | MilestoneInput[] | { items: MilestoneInpu
 type CostItemsBody = CostItem | CostItem[] | { items: CostItem[] };
 type ProofsBody = ProofOfImpact | ProofOfImpact[] | { items: ProofOfImpact[] };
 
+// The backend only accepts the wrapped `{ items: [...] }` shape for
+// sub-resource POSTs (single objects and raw arrays 400 despite what the
+// API guide claims), so every add helper normalizes to it here — callers
+// keep passing whatever shape is convenient.
+function wrapItems<T>(body: T | T[] | { items: T[] }): { items: T[] } {
+  if (body !== null && typeof body === "object" && "items" in body) {
+    return body as { items: T[] };
+  }
+  return { items: Array.isArray(body) ? body : [body as T] };
+}
+
 export const projectsApi = {
   list: (params?: PaginationParams & { status?: string }) =>
     api
@@ -61,7 +72,7 @@ export const projectsApi = {
 
   addMilestones: (id: string, body: MilestonesBody) =>
     api
-      .post<RawProject>(`/projects/${id}/milestones`, body)
+      .post<RawProject>(`/projects/${id}/milestones`, wrapItems(body))
       .then((raw) => toProject(raw))
       .then((p) => projectSchema.parse(p)),
 
@@ -79,7 +90,7 @@ export const projectsApi = {
 
   addCostItems: (id: string, body: CostItemsBody) =>
     api
-      .post<RawProject>(`/projects/${id}/cost-items`, body)
+      .post<RawProject>(`/projects/${id}/cost-items`, wrapItems(body))
       .then((raw) => toProject(raw))
       .then((p) => projectSchema.parse(p)),
 
@@ -91,7 +102,7 @@ export const projectsApi = {
 
   addPhotos: (id: string, urls: string[] | { items: string[] }) =>
     api
-      .post<RawProject>(`/projects/${id}/photos`, urls)
+      .post<RawProject>(`/projects/${id}/photos`, wrapItems(urls))
       .then((raw) => toProject(raw))
       .then((p) => projectSchema.parse(p)),
 
@@ -103,7 +114,7 @@ export const projectsApi = {
 
   addProofs: (id: string, body: ProofsBody) =>
     api
-      .post<RawProject>(`/projects/${id}/proofs`, body)
+      .post<RawProject>(`/projects/${id}/proofs`, wrapItems(body))
       .then((raw) => toProject(raw))
       .then((p) => projectSchema.parse(p)),
 

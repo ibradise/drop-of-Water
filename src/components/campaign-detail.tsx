@@ -127,13 +127,24 @@ export function CampaignDetail({ campaignId }: { campaignId: string }) {
   const donorCount = donorsQ.data?.meta.total ?? donors.length;
   const updates = impactQ.data?.data ?? [];
 
+  const manageHref = `/me/campaigns/${campaign._id}/manage`;
+  const joinHref =
+    !campaign.joinable || campaign.status !== "active"
+      ? null
+      : state.status === "authenticated"
+        ? campaign.createdBy !== state.user.id &&
+          !campaign.participants.some((p) => p.userId === state.user.id)
+          ? manageHref
+          : null
+        : `/sign-in?next=${encodeURIComponent(manageHref)}`;
+
   return (
     <div className="flex flex-col gap-10">
       <Link href="/campaigns" className="text-sm text-slate-500 hover:text-slate-700">
         ← All campaigns
       </Link>
 
-      <CampaignHero campaign={campaign} />
+      <CampaignHero campaign={campaign} joinHref={joinHref} />
 
       {campaign.story ? <CampaignStory campaign={campaign} /> : null}
 

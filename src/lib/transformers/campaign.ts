@@ -22,7 +22,10 @@ export const rawCampaignSchema = z.object({
   joinable: z.boolean(),
   participants: z.array(z.object({
     _id: z.string().optional(),
-    userId: z.string(),
+    userId: z.union([
+      z.string(),
+      z.object({ _id: z.string(), email: z.string(), name: z.string(), roles: z.array(z.string()), id: z.string() }),
+    ]),
     role: z.string().max(50).default("fundraiser"),
     joinedAt: z.string(),
   })),
@@ -83,7 +86,10 @@ export function toCampaign(raw: RawCampaign): Campaign {
     endDate: raw.endDate ?? null,
     status: raw.status,
     joinable: raw.joinable,
-    participants: raw.participants,
+    participants: raw.participants.map((p) => ({
+      ...p,
+      userId: typeof p.userId === "string" ? p.userId : p.userId._id,
+    })),
     photos: raw.photos,
     createdBy: typeof raw.createdBy === 'string' ? raw.createdBy : raw.createdBy._id,
     contentManagerId: raw.contentManagerId ? (typeof raw.contentManagerId === 'string' ? raw.contentManagerId : raw.contentManagerId._id) : null,
