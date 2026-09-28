@@ -7,6 +7,7 @@ import { ChevronRight, Filter, Plus } from "lucide-react";
 import { adminApi } from "@/lib/api/admin";
 import { Card, CardContent, EmptyState } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Pager } from "@/components/pager";
 import { Money } from "@/components/ui/money";
 import { ProjectStatusBadge } from "@/components/ui/status-badges";
 import { ProgressBar } from "@/components/progress-bar";
@@ -14,16 +15,23 @@ import { PROJECT_STATUSES, type ProjectStatus } from "@/lib/enums";
 
 export default function AdminProjectsPage() {
   const [status, setStatus] = useState<ProjectStatus | null>(null);
+  const [page, setPage] = useState(1);
+  const limit = 20;
 
   const q = useQuery({
-    queryKey: ["admin", "projects", { status }],
+    queryKey: ["admin", "projects", { status, page }],
     queryFn: () =>
       adminApi.projects({
-        page: 1,
-        limit: 50,
+        page,
+        limit,
         status: status ?? undefined,
       }),
   });
+
+  const applyFilter = (next: ProjectStatus | null) => {
+    setStatus(next);
+    setPage(1);
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -48,11 +56,11 @@ export default function AdminProjectsPage() {
             <Filter className="h-3 w-3" /> Filters
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
-            <FilterChip active={status === null} onClick={() => setStatus(null)}>
+            <FilterChip active={status === null} onClick={() => applyFilter(null)}>
               All
             </FilterChip>
             {PROJECT_STATUSES.map((s) => (
-              <FilterChip key={s} active={status === s} onClick={() => setStatus(s)}>
+              <FilterChip key={s} active={status === s} onClick={() => applyFilter(s)}>
                 {s.replace(/_/g, " ")}
               </FilterChip>
             ))}
@@ -81,7 +89,7 @@ export default function AdminProjectsPage() {
           title="No projects match the filter"
           description="Try clearing or changing your filter."
           action={
-            <Button variant="outline" onClick={() => setStatus(null)}>
+            <Button variant="outline" onClick={() => applyFilter(null)}>
               Clear filter
             </Button>
           }
@@ -121,6 +129,16 @@ export default function AdminProjectsPage() {
           </ul>
         </Card>
       )}
+      {q.data && q.data.data.length > 0 ? (
+        <Pager
+          page={q.data.meta.page}
+          limit={q.data.meta.limit}
+          total={q.data.meta.total}
+          hasPrevPage={q.data.meta.hasPrevPage}
+          hasNextPage={q.data.meta.hasNextPage}
+          onPage={setPage}
+        />
+      ) : null}
     </div>
   );
 }

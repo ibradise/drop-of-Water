@@ -10,7 +10,9 @@ import { adminApi } from "@/lib/api/admin";
 import { campaignsApi } from "@/lib/api/campaigns";
 import { Card, CardContent, EmptyState } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Pager } from "@/components/pager";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { formatDate } from "@/lib/format-date";
 import { Badge } from "@/components/ui/badge";
 import { Money } from "@/components/ui/money";
 import { CampaignStatusBadge } from "@/components/ui/status-badges";
@@ -31,17 +33,24 @@ function AdminCampaignsInner() {
     ? (rawStatus as CampaignStatus)
     : null;
   const [status, setStatus] = useState<CampaignStatus | null>(initialStatus);
+  const [page, setPage] = useState(1);
+  const limit = 20;
   const qc = useQueryClient();
 
   const q = useQuery({
-    queryKey: ["admin", "campaigns", { status }],
+    queryKey: ["admin", "campaigns", { status, page }],
     queryFn: () =>
       adminApi.campaigns({
-        page: 1,
-        limit: 50,
+        page,
+        limit,
         status: status ?? undefined,
       }),
   });
+
+  const applyFilter = (next: CampaignStatus | null) => {
+    setStatus(next);
+    setPage(1);
+  };
 
   const approve = useMutation({
     mutationFn: (id: string) => campaignsApi.approve(id),
@@ -53,7 +62,10 @@ function AdminCampaignsInner() {
       qc.invalidateQueries({ queryKey: ["campaigns"] });
       setConfirmAction(null);
     },
-    onError: () => toast.error("Couldn't approve campaign."),
+    onError: (err) => {
+      console.error("Approve campaign failed:", err);
+      toast.error("We couldn't approve this campaign. Please try again.");
+    },
   });
 
   const reject = useMutation({
@@ -66,7 +78,10 @@ function AdminCampaignsInner() {
       qc.invalidateQueries({ queryKey: ["campaigns"] });
       setConfirmAction(null);
     },
-    onError: () => toast.error("Couldn't reject campaign."),
+    onError: (err) => {
+      console.error("Reject campaign failed:", err);
+      toast.error("We couldn't send this campaign back to draft. Please try again.");
+    },
   });
   const [confirmAction, setConfirmAction] = useState<
     null | { id: string; title: string; approve: boolean }
@@ -87,11 +102,11 @@ function AdminCampaignsInner() {
             <Filter className="h-3 w-3" /> Filters
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
-            <FilterChip active={status === null} onClick={() => setStatus(null)}>
+            <FilterChip active={status === null} onClick={() => applyFilter(null)}>
               All
             </FilterChip>
             {CAMPAIGN_STATUSES.map((s) => (
-              <FilterChip key={s} active={status === s} onClick={() => setStatus(s)}>
+              <FilterChip key={s} active={status === s} onClick={() => applyFilter(s)}>
                 {s.replace(/_/g, " ")}
               </FilterChip>
             ))}
@@ -120,7 +135,7 @@ function AdminCampaignsInner() {
           title="No campaigns match the filter"
           description="Try clearing or changing your filter."
           action={
-            <Button variant="outline" onClick={() => setStatus(null)}>
+            <Button variant="outline" onClick={() => applyFilter(null)}>
               Clear filter
             </Button>
           }
@@ -144,7 +159,7 @@ function AdminCampaignsInner() {
                   <div className="mt-0.5 text-xs text-slate-500">
                     <Money cents={c.currentAmount} currency={c.currency} /> of{" "}
                     <Money cents={c.goalAmount} currency={c.currency} />
-                    {c.startDate ? ` · started ${new Date(c.startDate).toLocaleDateString()}` : null}
+                    {c.startDate ? ` · started ${formatDate(c.startDate)}` : null}
                   </div>
                 </Link>
 
@@ -185,6 +200,16 @@ function AdminCampaignsInner() {
           </ul>
         </Card>
       )}
+      {q.data && q.data.data.length > 0 ? (
+        <Pager
+          page={q.data.meta.page}
+          limit={q.data.meta.limit}
+          total={q.data.meta.total}
+          hasPrevPage={q.data.meta.hasPrevPage}
+          hasNextPage={q.data.meta.hasNextPage}
+          onPage={setPage}
+        />
+      ) : null}
 
       <ConfirmDialog
         open={confirmAction !== null}

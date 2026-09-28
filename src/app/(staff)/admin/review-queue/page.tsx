@@ -89,7 +89,7 @@ export default function AdminReviewQueuePage() {
             {donations.map((d) => (
               <li key={d._id}>
                 <Link
-                  href={`/admin/donations/${d._id}/review`}
+                  href={`/admin/donations/${d._id}/review?from=/admin/review-queue`}
                   className="block rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500"
                 >
                   <Card className="transition-shadow hover:shadow-md">

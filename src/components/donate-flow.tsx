@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -23,37 +23,18 @@ import { Badge } from "@/components/ui/badge";
 
 const presetAmounts = [100, 250, 500, 1_000, 2_500, 5_000] as const;
 
-const formSchema = z
-  .object({
-    amount: z
-      .number()
-      .min(1, "Amount must be at least 1 ETB"),
-    paymentMethod: z.enum(PAYMENT_METHODS),
-    message: z.string().max(1000).optional(),
-    isAnonymous: z.boolean(),
-    donorName: z.string().max(120).optional(),
-    donorEmail: z.string().email("Enter a valid email").max(200).optional().or(z.literal("")),
-  })
-  .superRefine((data, ctx) => {
-    if (data.amount >= HIGH_VALUE_DONATION_THRESHOLD) {
-      if (!data.donorEmail) {
-        ctx.addIssue({
-          path: ["donorEmail"],
-          code: z.ZodIssueCode.custom,
-          message: "Please add your email — gifts of this size are reviewed by our finance team before they count.",
-        });
-      }
-      if (!data.donorName) {
-        ctx.addIssue({
-          path: ["donorName"],
-          code: z.ZodIssueCode.custom,
-          message: "Please add your name — gifts of this size are reviewed by our finance team before they count.",
-        });
-      }
-    }
-  });
+const baseSchema = z.object({
+  amount: z
+    .number()
+    .min(1, "Amount must be at least 1 ETB"),
+  paymentMethod: z.enum(PAYMENT_METHODS),
+  message: z.string().max(1000).optional(),
+  isAnonymous: z.boolean(),
+  donorName: z.string().max(120).optional(),
+  donorEmail: z.string().email("Enter a valid email").max(200).optional().or(z.literal("")),
+});
 
-type FormValues = z.infer<typeof formSchema>;
+type FormValues = z.infer<typeof baseSchema>;
 
 export function DonateFlow({ campaignId }: { campaignId: string }) {
   const router = useRouter();
@@ -61,6 +42,32 @@ export function DonateFlow({ campaignId }: { campaignId: string }) {
   const { state } = useAuth();
   const isAuthed = state.status === "authenticated";
   const isAuthUnknown = state.status === "loading";
+  const formSchema = useMemo(
+    () =>
+      isAuthed
+        ? baseSchema
+        : baseSchema.superRefine((data, ctx) => {
+            if (data.amount >= HIGH_VALUE_DONATION_THRESHOLD) {
+              if (!data.donorEmail) {
+                ctx.addIssue({
+                  path: ["donorEmail"],
+                  code: z.ZodIssueCode.custom,
+                  message:
+                    "Please add your email — gifts of this size are reviewed by our finance team before they count.",
+                });
+              }
+              if (!data.donorName) {
+                ctx.addIssue({
+                  path: ["donorName"],
+                  code: z.ZodIssueCode.custom,
+                  message:
+                    "Please add your name — gifts of this size are reviewed by our finance team before they count.",
+                });
+              }
+            }
+          }),
+    [isAuthed],
+  );
   const [state_, setState] = useState<"idle" | "submitting" | "awaitingCheckout">("idle");
   const [preset, setPreset] = useState<number | null>(500);
   const [amountInput, setAmountInput] = useState<string>("500");
@@ -136,7 +143,11 @@ export function DonateFlow({ campaignId }: { campaignId: string }) {
     onError: (err) => {
       setState("idle");
       console.error("Submit donation failed:", err);
-      toast.error("We couldn't submit your donation. Please try again. You have not been charged.");
+      const msg =
+        err instanceof ApiError && err.statusCode === 400 && err.messages[0]
+          ? err.messages[0]
+          : "We couldn't submit your donation. Please try again. You have not been charged.";
+      toast.error(msg);
     },
   });
 
@@ -205,10 +216,13 @@ export function DonateFlow({ campaignId }: { campaignId: string }) {
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sky-50">
             <Clock className="h-5 w-5 text-sky-700" />
           </div>
-          <CardTitle>This campaign isn&apos;t accepting donations yet</CardTitle>
+          <CardTitle>This campaign isn&apos;t accepting donations right now</CardTitle>
           <CardDescription>
-            It&apos;s still being prepared and will open soon. Please check back
-            later or explore other campaigns.
+            {campaign.status === "paused"
+              ? "This campaign is temporarily paused. Please check back later or explore other campaigns."
+              : campaign.status === "completed" || campaign.status === "cancelled"
+                ? "This campaign has closed. Please explore other campaigns."
+                : "This campaign isn't open for donations yet. Please check back later or explore other campaigns."}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
@@ -223,6 +237,7 @@ export function DonateFlow({ campaignId }: { campaignId: string }) {
   const reviewThresholdEtb = HIGH_VALUE_DONATION_THRESHOLD / 100;
   const willTriggerReview = currentAmount >= reviewThresholdEtb;
   const disabled = state_ !== "idle" || isAuthUnknown;
+  const zeffyAvailable = campaign.currency === "USD" || campaign.currency === "CAD";
 
   return (
     <div className="grid gap-8 lg:grid-cols-[3fr_2fr]">
@@ -317,32 +332,45 @@ export function DonateFlow({ campaignId }: { campaignId: string }) {
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {(["chapa", "zeffy", "paypal", "stripe"] as const).map((m) => (
-                  <label
-                    key={m}
-                    className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-3 text-sm transition-colors ${
-                      paymentMethod === m
-                        ? "border-sky-500 bg-sky-50/60"
-                        : "border-slate-200 bg-white hover:border-slate-300"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      value={m}
-                      {...register("paymentMethod")}
-                      className="h-3.5 w-3.5 accent-sky-600"
-                      disabled={disabled}
-                    />
-                    <span className="font-medium capitalize text-slate-900">{m}</span>
-                    {m === "zeffy" ? (
-                      <Badge tone="info" className="ml-auto">
-                        USD/CAD
-                      </Badge>
-                    ) : null}
-                  </label>
-                ))}
+                {(["chapa", "zeffy", "paypal", "stripe"] as const).map((m) => {
+                  const unavailable = m === "zeffy" && !zeffyAvailable;
+                  const itemDisabled = disabled || unavailable;
+                  return (
+                    <label
+                      key={m}
+                      className={`flex items-center gap-3 rounded-lg border px-3 py-3 text-sm transition-colors ${
+                        itemDisabled
+                          ? "cursor-not-allowed opacity-60"
+                          : "cursor-pointer"
+                      } ${
+                        paymentMethod === m
+                          ? "border-sky-500 bg-sky-50/60"
+                          : "border-slate-200 bg-white hover:border-slate-300"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        value={m}
+                        {...register("paymentMethod")}
+                        className="h-3.5 w-3.5 accent-sky-600"
+                        disabled={itemDisabled}
+                      />
+                      <span className="font-medium capitalize text-slate-900">{m}</span>
+                      {m === "zeffy" ? (
+                        <Badge tone="info" className="ml-auto">
+                          USD/CAD
+                        </Badge>
+                      ) : null}
+                    </label>
+                  );
+                })}
               </div>
-              {paymentMethod === "zeffy" ? (
+              {!zeffyAvailable ? (
+                <p className="text-xs text-slate-500">
+                  Zeffy is only available for campaigns priced in USD or CAD —
+                  this campaign is in {campaign.currency}.
+                </p>
+              ) : paymentMethod === "zeffy" ? (
                 <p className="text-xs text-slate-500">
                   Zeffy only accepts USD or CAD. Use the same email on the form as on
                   this donation.

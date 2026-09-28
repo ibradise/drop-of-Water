@@ -16,6 +16,7 @@ const TABS = [
   { href: "/admin/review-queue", label: "Review queue" },
   { href: "/admin/projects", label: "Projects" },
   { href: "/admin/campaigns", label: "Campaigns" },
+  { href: "/admin/sponsorships", label: "Sponsors" },
   { href: "/admin/donations", label: "Donations" },
   { href: "/admin/impact-updates/pending", label: "Pending updates" },
   { href: "/admin/users", label: "Users" },

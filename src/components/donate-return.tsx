@@ -3,15 +3,25 @@
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { AlertTriangle, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Hourglass, SearchX, XCircle, Loader2 } from "lucide-react";
+import { useState } from "react";
 import { donationsApi } from "@/lib/api/donations";
 import type { Donation } from "@/lib/schemas/donation";
+import { useAuth } from "@/lib/auth/context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Money } from "@/components/ui/money";
 import { HIGH_VALUE_DONATION_THRESHOLD } from "@/lib/enums";
+import { useNow } from "@/lib/use-now";
 
-type Status = "pending" | "completed" | "manual_review" | "failed" | "not_found";
+type Status =
+  | "pending"
+  | "completed"
+  | "manual_review"
+  | "failed"
+  | "not_found"
+  | "invalid"
+  | "timeout";
 
 function statusFromParams(raw: string | null): Status {
   if (raw === "success" || raw === "pending") return "pending";
@@ -39,23 +49,46 @@ function settledFromMatch(initial: Status, match: Donation | undefined): Status 
 
 export function DonateReturn({ campaignId }: { campaignId: string }) {
   const search = useSearchParams();
+  const { state } = useAuth();
+  const isAuthed = state.status === "authenticated";
   const txRef = search.get("tx_ref") ?? "";
+  const hasTxRef = txRef.length > 0;
   const initialStatus = statusFromParams(search.get("status"));
   const isManual = initialStatus === "manual_review";
+
+  const stopPolling = (query: { state: { dataUpdateCount: number; data?: unknown } }) => {
+    if (query.state.dataUpdateCount >= 20) return true;
+    const match = matchDonation(txRef, (query.state.data as { data?: Donation[] } | undefined)?.data);
+    return !!match && match.status !== "pending";
+  };
+
+  const [mountedAt] = useState(() => Date.now());
+  const now = useNow(2000);
 
   const pollQ = useQuery({
     queryKey: ["donations", "campaign", campaignId, "poll"],
     queryFn: () => donationsApi.forCampaign(campaignId, { page: 1, limit: 50 }),
-    refetchInterval: (query) => {
-      if (query.state.dataUpdateCount >= 20) return false;
-      const match = matchDonation(txRef, query.state.data?.data);
-      if (match && match.status !== "pending") return false;
-      return 2_000;
-    },
-    enabled: !isManual && initialStatus === "pending" && txRef.length > 0,
+    refetchInterval: (query) => (stopPolling(query) ? false : 2_000),
+    enabled: !isManual && initialStatus === "pending" && hasTxRef,
   });
 
-  const settled = settledFromMatch(initialStatus, matchDonation(txRef, pollQ.data?.data));
+  const mineQ = useQuery({
+    queryKey: ["donations", "me", "poll"],
+    queryFn: () => donationsApi.mine({ page: 1, limit: 50 }),
+    refetchInterval: (query) => (stopPolling(query) ? false : 2_000),
+    enabled: isAuthed && !isManual && initialStatus === "pending" && hasTxRef,
+  });
+
+  const match =
+    matchDonation(txRef, mineQ.data?.data) ?? matchDonation(txRef, pollQ.data?.data);
+  const settled = settledFromMatch(initialStatus, match);
+
+  // Never assert settlement without evidence: a bare ?status=completed link
+  // (typed or forwarded) with no transaction reference proves nothing.
+  const showInvalid = !hasTxRef && initialStatus === "completed";
+  // Give the gateway ~40s (the ticker re-renders and re-checks this).
+  const timedOut = hasTxRef && settled === "pending" && now - mountedAt > 40_000;
+  const display: Status = showInvalid ? "invalid" : timedOut ? "timeout" : settled;
 
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-6">
@@ -66,28 +99,40 @@ export function DonateReturn({ campaignId }: { campaignId: string }) {
         <span aria-hidden>←</span> Back to campaign
       </Link>
 
-      <ReturnPanel status={settled} amount={search.get("amount")} txRef={txRef} />
+      <ReturnPanel status={display} amount={search.get("amount")} txRef={txRef} />
 
       <Card>
         <CardHeader>
           <CardTitle className="text-base">What happens next?</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-slate-700">
-          {settled === "completed" ? (
+          {display === "completed" ? (
             <p>
               Your gift has been confirmed by the payment gateway. It now counts
               toward the campaign total and will appear in your donor history.
             </p>
-          ) : settled === "manual_review" ? (
+          ) : display === "manual_review" ? (
             <p>
               Your payment has been captured. Our finance team will review the
               gift and confirm it shortly. You will be notified when the review
               is complete.
             </p>
-          ) : settled === "failed" ? (
+          ) : display === "failed" ? (
             <p>
               The gateway reported the payment as failed. No funds were
               captured. You can try again or pick a different payment method.
+            </p>
+          ) : display === "invalid" ? (
+            <p>
+              This link doesn&apos;t identify a payment, so there&apos;s nothing
+              to confirm. If you just paid, please wait a moment and check your
+              donation history.
+            </p>
+          ) : display === "timeout" ? (
+            <p>
+              We couldn&apos;t confirm your gift yet — gateways sometimes take a
+              few minutes. Your money is safe: check your donation history or
+              try again.
             </p>
           ) : (
             <p>
@@ -102,9 +147,14 @@ export function DonateReturn({ campaignId }: { campaignId: string }) {
         <Link href={`/campaigns/${campaignId}`}>
           <Button variant="outline">Back to campaign</Button>
         </Link>
-        {settled === "failed" ? (
+        {display === "failed" || display === "timeout" || display === "invalid" ? (
           <Link href={`/campaigns/${campaignId}/donate`}>
             <Button>Try again</Button>
+          </Link>
+        ) : null}
+        {isAuthed && (display === "timeout" || display === "invalid") ? (
+          <Link href="/me/donations">
+            <Button variant="outline">My donations</Button>
           </Link>
         ) : null}
       </div>
@@ -148,6 +198,26 @@ function ReturnPanel({
         icon={<XCircle className="h-6 w-6" />}
         title="Payment failed"
         body="No funds were captured. Please try again or pick a different payment method."
+      />
+    );
+  }
+  if (status === "invalid") {
+    return (
+      <Panel
+        tone="warning"
+        icon={<SearchX className="h-6 w-6" />}
+        title="We couldn't verify this payment"
+        body="This link doesn't identify a gift. If you just donated, give it a minute, then check your donation history or try again."
+      />
+    );
+  }
+  if (status === "timeout") {
+    return (
+      <Panel
+        tone="warning"
+        icon={<Hourglass className="h-6 w-6" />}
+        title="Still confirming…"
+        body="The gateway hasn't confirmed yet. Please don't pay twice — check your donation history in a few minutes."
       />
     );
   }

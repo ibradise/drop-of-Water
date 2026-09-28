@@ -7,6 +7,7 @@ import { ChevronRight, Filter } from "lucide-react";
 import { adminApi } from "@/lib/api/admin";
 import { Card, CardContent, EmptyState } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Pager } from "@/components/pager";
 import { Badge } from "@/components/ui/badge";
 import { DonationStatusBadge } from "@/components/ui/status-badges";
 import { Money } from "@/components/ui/money";
@@ -25,18 +26,30 @@ export default function AdminDonationsPage() {
   const [status, setStatus] = useState<DonationStatus | null>(null);
   const [highValue, setHighValue] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<string>("");
+  const [minAmountEtb, setMinAmountEtb] = useState("");
+  const [page, setPage] = useState(1);
+  const limit = 20;
 
   const q = useQuery({
-    queryKey: ["admin", "donations", { status, highValue, paymentMethod }],
+    queryKey: ["admin", "donations", { status, highValue, paymentMethod, minAmountEtb, page }],
     queryFn: () =>
       adminApi.donations({
-        page: 1,
-        limit: 50,
+        page,
+        limit,
         status: status ?? undefined,
         highValue: highValue || undefined,
         paymentMethod: paymentMethod || undefined,
+        minAmount:
+          minAmountEtb.trim() !== "" && Number.isFinite(Number(minAmountEtb))
+            ? Math.round(Number(minAmountEtb) * 100)
+            : undefined,
       }),
   });
+
+  const applyFilter = (fn: () => void) => {
+    fn();
+    setPage(1);
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -55,14 +68,14 @@ export default function AdminDonationsPage() {
             <Filter className="h-3 w-3" /> Filters
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
-            <FilterChip active={status === null} onClick={() => setStatus(null)}>
+            <FilterChip active={status === null} onClick={() => applyFilter(() => setStatus(null))}>
               All
             </FilterChip>
             {STATUS_FILTERS.map((s) => (
               <FilterChip
                 key={s}
                 active={status === s}
-                onClick={() => setStatus(s)}
+                onClick={() => applyFilter(() => setStatus(s))}
               >
                 {s.replace(/_/g, " ")}
               </FilterChip>
@@ -73,14 +86,14 @@ export default function AdminDonationsPage() {
               <input
                 type="checkbox"
                 checked={highValue}
-                onChange={(e) => setHighValue(e.target.checked)}
+                onChange={(e) => applyFilter(() => setHighValue(e.target.checked))}
                 className="h-3.5 w-3.5 rounded border-slate-300 accent-sky-600"
               />
               High-value only (≥ 5,000 ETB)
             </label>
             <select
               value={paymentMethod}
-              onChange={(e) => setPaymentMethod(e.target.value)}
+              onChange={(e) => applyFilter(() => setPaymentMethod(e.target.value))}
               className="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm"
             >
               <option value="">All payment methods</option>
@@ -90,6 +103,19 @@ export default function AdminDonationsPage() {
                 </option>
               ))}
             </select>
+            <label className="flex items-center gap-2 text-sm text-slate-700">
+              Min amount (ETB)
+              <input
+                type="number"
+                min={0}
+                step={1}
+                value={minAmountEtb}
+                onChange={(e) => applyFilter(() => setMinAmountEtb(e.target.value))}
+                placeholder="Optional"
+                aria-label="Minimum amount in ETB"
+                className="w-28 rounded-md border border-slate-200 bg-white px-2 py-1 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+              />
+            </label>
           </div>
         </CardContent>
       </Card>
@@ -121,6 +147,8 @@ export default function AdminDonationsPage() {
                 setStatus(null);
                 setHighValue(false);
                 setPaymentMethod("");
+                setMinAmountEtb("");
+                setPage(1);
               }}
             >
               Clear filters
@@ -133,7 +161,7 @@ export default function AdminDonationsPage() {
             {q.data.data.map((d) => (
               <li key={d._id}>
                 <Link
-                  href={`/admin/donations/${d._id}/review`}
+                  href={`/admin/donations/${d._id}/review?from=/admin/donations`}
                   className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-slate-50"
                 >
                   <div className="flex flex-col gap-0.5">
@@ -164,6 +192,16 @@ export default function AdminDonationsPage() {
           </ul>
         </Card>
       )}
+      {q.data && q.data.data.length > 0 ? (
+        <Pager
+          page={q.data.meta.page}
+          limit={q.data.meta.limit}
+          total={q.data.meta.total}
+          hasPrevPage={q.data.meta.hasPrevPage}
+          hasNextPage={q.data.meta.hasNextPage}
+          onPage={setPage}
+        />
+      ) : null}
     </div>
   );
 }

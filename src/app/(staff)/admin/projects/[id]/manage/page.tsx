@@ -3,9 +3,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { use, useState } from "react";
-import { CalendarDays, Image as ImageIcon, ListChecks, Plus, Receipt, Trash2 } from "lucide-react";
+import { CalendarDays, Image as ImageIcon, ListChecks, Plus, Receipt, Trash2, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { projectsApi } from "@/lib/api/projects";
+import { type ProjectStatus } from "@/lib/enums";
 import { ApiError } from "@/lib/api/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -179,6 +180,8 @@ function Inner({ id }: { id: string }) {
           </span>
         </div>
       </header>
+
+      <StatusStepper id={p._id} status={p.status} />
 
       <Card>
         <CardHeader>
@@ -453,5 +456,82 @@ function Inner({ id }: { id: string }) {
         isPending={removeMilestone.isPending}
       />
     </div>
+  );
+}
+
+const NEXT_STATUS: Record<ProjectStatus, ProjectStatus[]> = {
+  draft: ["assessment", "archived"],
+  assessment: ["draft", "fundable", "archived"],
+  fundable: ["assessment", "funded", "archived"],
+  funded: ["in_progress", "archived"],
+  in_progress: ["completed", "archived"],
+  completed: [],
+  archived: [],
+};
+
+function StatusStepper({ id, status }: { id: string; status: ProjectStatus }) {
+  const qc = useQueryClient();
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const next = NEXT_STATUS[status] ?? [];
+
+  const update = useMutation({
+    mutationFn: (nextStatus: ProjectStatus) => projectsApi.update(id, { status: nextStatus }),
+    onSuccess: (_, nextStatus) => {
+      toast.success(
+        nextStatus === "archived"
+          ? "Project archived. It no longer appears in listings."
+          : `Project moved to ${nextStatus.replace(/_/g, " ")}.`,
+      );
+      setArchiveOpen(false);
+      qc.invalidateQueries({ queryKey: ["projects", "get", id] });
+      qc.invalidateQueries({ queryKey: ["projects", "list"] });
+      qc.invalidateQueries({ queryKey: ["admin", "projects"] });
+      qc.invalidateQueries({ queryKey: ["admin", "dashboard"] });
+    },
+    onError: (e) => {
+      console.error("Update project status failed:", e);
+      toast.error("We couldn't change the project status. Please try again.");
+    },
+  });
+
+  if (next.length === 0) return null;
+
+  return (
+    <Card>
+      <CardContent className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h3 className="text-sm font-semibold text-slate-900">Project status</h3>
+          <p className="text-xs text-slate-500">
+            Move the project along its lifecycle. Archiving is terminal — the
+            project disappears from listings.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {next.map((s) => (
+            <Button
+              key={s}
+              size="sm"
+              variant="outline"
+              onClick={() => (s === "archived" ? setArchiveOpen(true) : update.mutate(s))}
+              isLoading={update.isPending && update.variables === s}
+              disabled={update.isPending}
+            >
+              <ArrowRight className="h-3.5 w-3.5" />
+              {s.replace(/_/g, " ")}
+            </Button>
+          ))}
+        </div>
+      </CardContent>
+      <ConfirmDialog
+        open={archiveOpen}
+        onOpenChange={setArchiveOpen}
+        onConfirm={() => update.mutate("archived")}
+        title="Archive this project?"
+        description="Archiving is terminal. The project disappears from listings and no new campaigns can be created against it."
+        confirmLabel="Yes, archive"
+        danger
+        isPending={update.isPending}
+      />
+    </Card>
   );
 }

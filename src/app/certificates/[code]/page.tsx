@@ -68,7 +68,7 @@ export default function PublicCertificatePage({
               {is403
                 ? "The owner has not made this certificate public yet."
                 : is404
-                  ? "It may have been removed, or the link is wrong."
+                  ? "It may be private or removed — ask the owner to make it public, or check the link."
                   : isUnexpected
                     ? "Please refresh the page to try again. If it keeps happening, contact support."
                     : "Something went wrong on our side. Please try again. If it keeps happening, contact support."}

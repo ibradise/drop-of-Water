@@ -8,23 +8,31 @@ import { usersApi } from "@/lib/api/users";
 import type { User } from "@/lib/schemas/user";
 import { Card, CardContent, EmptyState } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Pager } from "@/components/pager";
 import { Badge } from "@/components/ui/badge";
 import { ROLES, type Role } from "@/lib/enums";
 
 export default function AdminUsersPage() {
   const [roleFilter, setRoleFilter] = useState<Role | "">("");
+  const [page, setPage] = useState(1);
+  const limit = 20;
   const qc = useQueryClient();
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const q = useQuery({
-    queryKey: ["admin", "users", { roleFilter }],
+    queryKey: ["admin", "users", { roleFilter, page }],
     queryFn: () =>
       usersApi.list({
-        page: 1,
-        limit: 50,
+        page,
+        limit,
         role: roleFilter || undefined,
       }),
   });
+
+  const applyFilter = (next: Role | "") => {
+    setRoleFilter(next);
+    setPage(1);
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -42,7 +50,7 @@ export default function AdminUsersPage() {
           </div>
           <select
             value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value as Role | "")}
+            onChange={(e) => applyFilter(e.target.value as Role | "")}
             className="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm"
           >
             <option value="">All roles</option>
@@ -76,7 +84,7 @@ export default function AdminUsersPage() {
           title="No users match the filter"
           description="Try clearing or changing your filter."
           action={
-            <Button variant="outline" onClick={() => setRoleFilter("")}>
+            <Button variant="outline" onClick={() => applyFilter("")}>
               Clear filter
             </Button>
           }
@@ -97,6 +105,16 @@ export default function AdminUsersPage() {
           ))}
         </div>
       )}
+      {q.data && q.data.data.length > 0 ? (
+        <Pager
+          page={q.data.meta.page}
+          limit={q.data.meta.limit}
+          total={q.data.meta.total}
+          hasPrevPage={q.data.meta.hasPrevPage}
+          hasNextPage={q.data.meta.hasNextPage}
+          onPage={setPage}
+        />
+      ) : null}
     </div>
   );
 }

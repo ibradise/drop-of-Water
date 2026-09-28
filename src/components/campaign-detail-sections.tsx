@@ -66,7 +66,11 @@ export function CampaignHero({ campaign, joinHref }: { campaign: Campaign; joinH
             </Link>
           ) : (
             <div className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-center text-sm text-slate-600">
-              This campaign isn&apos;t accepting donations right now.
+              {campaign.status === "paused"
+                ? "This campaign is temporarily paused. Please check back later."
+                : campaign.status === "completed" || campaign.status === "cancelled"
+                  ? "This campaign has closed and is no longer accepting donations."
+                  : "This campaign isn't open for donations yet. Please check back later."}
             </div>
           )}
           <Link href={`/projects/${campaign.projectId}`}>

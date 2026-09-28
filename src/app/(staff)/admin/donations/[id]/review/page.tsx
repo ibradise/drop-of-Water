@@ -2,10 +2,11 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { adminApi } from "@/lib/api/admin";
+import { donationsApi } from "@/lib/api/donations";
 import { ApiError } from "@/lib/api/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,27 +14,35 @@ import { Badge } from "@/components/ui/badge";
 import { DonationStatusBadge } from "@/components/ui/status-badges";
 import { Money } from "@/components/ui/money";
 import { ConfirmDialog } from "@/components/confirm-dialog";
-import { use, useState } from "react";
+import { Suspense, use, useState } from "react";
 
 export default function AdminDonationReviewPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = use(params);
-  return <ReviewInner id={id} />;
+  return (
+    <Suspense
+      fallback={<div className="h-64 animate-pulse rounded-xl bg-slate-100" />}
+    >
+      <ReviewInner params={params} />
+    </Suspense>
+  );
 }
 
-function ReviewInner({ id }: { id: string }) {
+function ReviewInner({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const router = useRouter();
+  const search = useSearchParams();
+  const from =
+    search.get("from") === "/admin/review-queue"
+      ? "/admin/review-queue"
+      : "/admin/donations";
   const qc = useQueryClient();
   const donationQ = useQuery({
     queryKey: ["donations", "get", id],
-    queryFn: () => adminApi.donations({ page: 1, limit: 50 }).then((r) => {
-      const found = r.data.find((d) => d._id === id);
-      if (!found) throw new ApiError(404, "Donation not found", null);
-      return found;
-    }),
+    queryFn: () => donationsApi.get(id),
+    retry: (count, err) => !(err instanceof ApiError && err.statusCode === 404) && count < 2,
   });
 
   const review = useMutation({
@@ -52,7 +61,7 @@ function ReviewInner({ id }: { id: string }) {
       qc.invalidateQueries({ queryKey: ["campaigns"] });
       qc.invalidateQueries({ queryKey: ["projects"] });
       setDecision(null);
-      router.push("/admin/donations");
+      router.push(from);
     },
     onError: (err) => {
       console.error("Record donation decision failed:", err);
@@ -90,8 +99,10 @@ function ReviewInner({ id }: { id: string }) {
             <Button variant="outline" onClick={() => donationQ.refetch()}>
               Retry
             </Button>
-            <Link href="/admin/donations">
-              <Button variant="outline">Back to donations</Button>
+            <Link href={from}>
+              <Button variant="outline">
+                {from === "/admin/review-queue" ? "Back to review queue" : "Back to donations"}
+              </Button>
             </Link>
           </CardContent>
         </Card>
@@ -102,6 +113,8 @@ function ReviewInner({ id }: { id: string }) {
   const d = donationQ.data;
   if (!d) return null;
 
+  const reviewable = d.status === "manual_review";
+
   const isCaptured = d.paidAt !== null;
   const approveLabel = isCaptured ? "Approve and credit" : "Approve (awaiting capture)";
   const rejectLabel = isCaptured ? "Reject and refund" : "Reject and mark failed";
@@ -109,10 +122,10 @@ function ReviewInner({ id }: { id: string }) {
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
       <Link
-        href="/admin/donations"
+        href={from}
         className="text-sm text-slate-500 hover:text-slate-700"
       >
-        ← Back to donations
+        ← {from === "/admin/review-queue" ? "Back to review queue" : "Back to donations"}
       </Link>
 
       <header className="flex flex-col gap-2">
@@ -167,24 +180,32 @@ function ReviewInner({ id }: { id: string }) {
       </Card>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-        <Link href="/admin/donations">
+        <Link href={from}>
           <Button variant="ghost">Cancel</Button>
         </Link>
         <Button
           variant="outline"
           className="border-rose-300 text-rose-700 hover:bg-rose-50"
           onClick={() => setDecision({ approve: false })}
+          disabled={!reviewable}
         >
           <XCircle className="h-4 w-4" />
           {rejectLabel}
         </Button>
         <Button
           onClick={() => setDecision({ approve: true })}
+          disabled={!reviewable}
         >
           <CheckCircle2 className="h-4 w-4" />
           {approveLabel}
         </Button>
       </div>
+      {!reviewable ? (
+        <p className="text-xs text-slate-500">
+          This donation is {d.status.replace(/_/g, " ")} — only gifts awaiting
+          review can be decided here.
+        </p>
+      ) : null}
 
       <ConfirmDialog
         open={decision !== null}

@@ -64,7 +64,8 @@ export default function MeCertificatesPage() {
         <h2 className="text-xl font-semibold text-slate-900">My certificates</h2>
         <p className="text-sm text-slate-500">
           Frozen snapshots of what you&rsquo;ve achieved. Generate a new one whenever your
-          numbers move — old share links keep working.
+          numbers move — old share links keep working. Fundraising credits campaigns you
+          created or joined; gifts you give to others don&rsquo;t count toward it.
         </p>
       </header>
 
@@ -157,6 +158,11 @@ export default function MeCertificatesPage() {
                 </div>
                 <div className="flex flex-col items-stretch gap-2 sm:w-56">
                   <ShareLink code={cert.certificateCode} />
+                  {!cert.isPublic ? (
+                    <p className="text-xs text-slate-500">
+                      Only visible to you until you make it public.
+                    </p>
+                  ) : null}
                   <Button
                     size="sm"
                     variant="outline"

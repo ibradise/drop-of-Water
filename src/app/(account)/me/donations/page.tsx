@@ -19,11 +19,15 @@ import { formatDateTime } from "@/lib/format-date";
 export default function MeDonationsPage() {
   const [status, setStatus] = useState<DonationStatus | null>(null);
   const donationsQ = useQuery({
-    queryKey: ["donations", "me", { status }],
-    queryFn: () => donationsApi.mine({ page: 1, limit: 50, status: status ?? undefined }),
+    queryKey: ["donations", "me"],
+    queryFn: () => donationsApi.mine({ page: 1, limit: 50 }),
   });
 
-  const items = donationsQ.data?.data ?? [];
+  // The backend does not support server-side filtering here, so filter the
+  // fetched page client-side.
+  const items = (donationsQ.data?.data ?? []).filter(
+    (d) => !status || d.status === status,
+  );
 
   return (
     <div className="flex flex-col gap-6">

@@ -64,7 +64,9 @@ export default function HomePage() {
   const fundableProjects = projects?.data ?? [];
 
   // Aggregate a few headline numbers from the live data.
-  const totalRaised = activeCampaigns.reduce(
+  const activeCount = featured?.meta.total ?? activeCampaigns.length;
+  const featuredCurrency = activeCampaigns[0]?.currency ?? "ETB";
+  const featuredRaised = activeCampaigns.reduce(
     (sum, c) => sum + c.currentAmount,
     0,
   );
@@ -111,14 +113,14 @@ export default function HomePage() {
         <div className="mx-auto grid max-w-6xl grid-cols-1 gap-4 px-4 sm:grid-cols-3 sm:px-6">
           <Stat
             label="Active campaigns"
-            value={String(activeCampaigns.length || "—")}
+            value={String(activeCount)}
           />
           <Stat
-            label="Raised this week"
-            value={totalRaised > 0 ? <Money cents={totalRaised} currency="ETB" /> : "—"}
+            label="Raised by featured campaigns"
+            value={featuredRaised > 0 ? <Money cents={featuredRaised} currency={featuredCurrency} /> : "—"}
           />
           <Stat
-            label="People served (est.)"
+            label="Est. people to serve"
             value={peopleServed > 0 ? peopleServed.toLocaleString() : "—"}
           />
         </div>
