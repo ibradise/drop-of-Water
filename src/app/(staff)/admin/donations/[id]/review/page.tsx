@@ -69,6 +69,43 @@ function ReviewInner({ params }: { params: Promise<{ id: string }> }) {
     },
   });
   const [decision, setDecision] = useState<null | { approve: boolean }>(null);
+  const [refundOpen, setRefundOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ["admin", "donations"] });
+    qc.invalidateQueries({ queryKey: ["admin", "review-queue"] });
+    qc.invalidateQueries({ queryKey: ["admin", "dashboard"] });
+    qc.invalidateQueries({ queryKey: ["donations"] });
+    qc.invalidateQueries({ queryKey: ["campaigns"] });
+    qc.invalidateQueries({ queryKey: ["projects"] });
+  };
+
+  const refund = useMutation({
+    mutationFn: () => donationsApi.refund(id),
+    onSuccess: () => {
+      toast.success("Refund recorded. Campaign and project totals are reversed.");
+      setRefundOpen(false);
+      refresh();
+    },
+    onError: (err) => {
+      console.error("Refund donation failed:", err);
+      toast.error("We couldn't record the refund. Please try again.");
+    },
+  });
+
+  const remove = useMutation({
+    mutationFn: () => donationsApi.remove(id),
+    onSuccess: () => {
+      toast.success("Donation removed from listings. Totals were not reversed — refund first if money moved.");
+      setDeleteOpen(false);
+      refresh();
+    },
+    onError: (err) => {
+      console.error("Delete donation failed:", err);
+      toast.error("We couldn't remove this donation. Please try again.");
+    },
+  });
 
   if (donationQ.isLoading) {
     return <div className="h-64 animate-pulse rounded-xl bg-slate-100" />;
@@ -207,6 +244,39 @@ function ReviewInner({ params }: { params: Promise<{ id: string }> }) {
         </p>
       ) : null}
 
+      {d.status === "completed" ? (
+        <Card className="border-rose-200 bg-rose-50/30">
+          <CardContent className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-rose-900">Money already moved</h3>
+              <p className="text-xs text-rose-700">
+                Refund reverses the campaign and project totals. Deleting only
+                removes the record — it does not reverse totals.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setRefundOpen(true)}
+                isLoading={refund.isPending}
+              >
+                Record refund
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                onClick={() => setDeleteOpen(true)}
+                isLoading={remove.isPending}
+              >
+                Remove record
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
       <ConfirmDialog
         open={decision !== null}
         onOpenChange={(open) => {
@@ -231,6 +301,28 @@ function ReviewInner({ params }: { params: Promise<{ id: string }> }) {
         reasonPlaceholder="Why was this decision made?"
         reasonMaxLength={500}
         isPending={review.isPending}
+      />
+
+      <ConfirmDialog
+        open={refundOpen}
+        onOpenChange={setRefundOpen}
+        onConfirm={() => refund.mutate()}
+        title="Record a refund?"
+        description="This reverses the campaign and project totals. The gateway refund itself still needs to be issued manually."
+        confirmLabel="Yes, record refund"
+        danger
+        isPending={refund.isPending}
+      />
+
+      <ConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        onConfirm={() => remove.mutate()}
+        title="Remove this donation record?"
+        description="It disappears from listings but totals are not reversed. If money already moved, record a refund first."
+        confirmLabel="Yes, remove"
+        danger
+        isPending={remove.isPending}
       />
     </div>
   );

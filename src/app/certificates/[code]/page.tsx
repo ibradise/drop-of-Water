@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use } from "react";
-import { Award, CheckCircle2, ExternalLink, Lock, ShieldCheck, Sparkles } from "lucide-react";
+import { Award, Lock, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { certificatesApi } from "@/lib/api/certificates";
 import { ApiError } from "@/lib/api/client";

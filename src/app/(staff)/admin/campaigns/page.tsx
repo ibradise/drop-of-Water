@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Check, ChevronRight, Filter, X } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, ChevronUp, Filter, Pencil, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { adminApi } from "@/lib/api/admin";
 import { campaignsApi } from "@/lib/api/campaigns";
@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Money } from "@/components/ui/money";
 import { CampaignStatusBadge } from "@/components/ui/status-badges";
 import { CAMPAIGN_STATUSES, type CampaignStatus } from "@/lib/enums";
+import { useStaffCapabilities } from "@/lib/staff-capabilities";
 
 export default function AdminCampaignsPage() {
   return (
@@ -28,6 +29,7 @@ export default function AdminCampaignsPage() {
 
 function AdminCampaignsInner() {
   const search = useSearchParams();
+  const caps = useStaffCapabilities();
   const rawStatus = search.get("status");
   const initialStatus = (CAMPAIGN_STATUSES as readonly string[]).includes(rawStatus ?? "")
     ? (rawStatus as CampaignStatus)
@@ -86,6 +88,42 @@ function AdminCampaignsInner() {
   const [confirmAction, setConfirmAction] = useState<
     null | { id: string; title: string; approve: boolean }
   >(null);
+  const [managingId, setManagingId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ["admin", "campaigns"] });
+    qc.invalidateQueries({ queryKey: ["admin", "dashboard"] });
+    qc.invalidateQueries({ queryKey: ["admin", "review-queue"] });
+    qc.invalidateQueries({ queryKey: ["campaigns"] });
+  };
+
+  const update = useMutation({
+    mutationFn: ({ id, body }: { id: string; body: Record<string, unknown> }) =>
+      campaignsApi.update(id, body as never),
+    onSuccess: () => {
+      toast.success("Campaign changes have been saved.");
+      setManagingId(null);
+      refresh();
+    },
+    onError: (err) => {
+      console.error("Update campaign failed:", err);
+      toast.error("We couldn't save these changes. Please try again.");
+    },
+  });
+
+  const remove = useMutation({
+    mutationFn: (id: string) => campaignsApi.remove(id),
+    onSuccess: () => {
+      toast.success("Campaign removed from listings.");
+      setDeleteId(null);
+      refresh();
+    },
+    onError: (err) => {
+      console.error("Delete campaign failed:", err);
+      toast.error("We couldn't delete this campaign. Please try again.");
+    },
+  });
 
   return (
     <div className="flex flex-col gap-6">
@@ -164,7 +202,7 @@ function AdminCampaignsInner() {
                 </Link>
 
                 <div className="flex items-center gap-1.5 shrink-0">
-                  {c.status === "pending_approval" ? (
+                  {c.status === "pending_approval" && caps.isCampaignManager ? (
                     <>
                       <Button
                         size="sm"
@@ -191,10 +229,39 @@ function AdminCampaignsInner() {
                         Reject
                       </Button>
                     </>
-                  ) : (
+                  ) : null}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setManagingId(managingId === c._id ? null : c._id)}
+                      aria-label={`Manage ${c.title}`}
+                    >
+                      {managingId === c._id ? (
+                        <ChevronUp className="h-3.5 w-3.5" />
+                      ) : (
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                      onClick={() => setDeleteId(c._id)}
+                      aria-label={`Delete ${c.title}`}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
                     <ChevronRight className="h-4 w-4 text-slate-400" />
-                  )}
+                  </div>
                 </div>
+                {managingId === c._id ? (
+                  <CampaignManagePanel
+                    campaign={c}
+                    onSave={(body) => update.mutate({ id: c._id, body })}
+                    isPending={update.isPending}
+                  />
+                ) : null}
               </li>
             ))}
           </ul>
@@ -235,6 +302,166 @@ function AdminCampaignsInner() {
         danger={!confirmAction?.approve}
         isPending={approve.isPending || reject.isPending}
       />
+
+      <ConfirmDialog
+        open={deleteId !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteId(null);
+        }}
+        onConfirm={() => {
+          if (deleteId) remove.mutate(deleteId);
+        }}
+        title="Delete this campaign?"
+        description="It disappears from all listings. Donations already made are kept for records."
+        confirmLabel="Yes, delete"
+        danger
+        isPending={remove.isPending}
+      />
+    </div>
+  );
+}
+
+const STATUS_ACTIONS: Record<CampaignStatus, Array<{ to: CampaignStatus; label: string }>> = {
+  draft: [],
+  pending_approval: [],
+  active: [{ to: "paused", label: "Pause" }],
+  paused: [{ to: "active", label: "Resume" }],
+  completed: [],
+  cancelled: [],
+};
+
+function CampaignManagePanel({
+  campaign,
+  onSave,
+  isPending,
+}: {
+  campaign: {
+    _id: string;
+    title: string;
+    summary?: string;
+    goalAmount: number;
+    currency: string;
+    joinable: boolean;
+    startDate?: string | null;
+    endDate?: string | null;
+    status: CampaignStatus;
+  };
+  onSave: (body: Record<string, unknown>) => void;
+  isPending: boolean;
+}) {
+  const [title, setTitle] = useState(campaign.title);
+  const [summary, setSummary] = useState(campaign.summary ?? "");
+  const [goalWhole, setGoalWhole] = useState(String(campaign.goalAmount / 100));
+  const [joinable, setJoinable] = useState(campaign.joinable);
+  const [startDate, setStartDate] = useState(campaign.startDate?.slice(0, 10) ?? "");
+  const [endDate, setEndDate] = useState(campaign.endDate?.slice(0, 10) ?? "");
+
+  const statusActions = STATUS_ACTIONS[campaign.status as CampaignStatus] ?? [];
+  const inputCls =
+    "w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30";
+
+  return (
+    <div className="flex flex-col gap-4 border-t border-slate-100 px-5 py-4">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <label htmlFor="cm-title" className="mb-1 block text-sm font-medium text-slate-700">
+            Title
+          </label>
+          <input id="cm-title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} className={inputCls} />
+        </div>
+        <div>
+          <label htmlFor="cm-goal" className="mb-1 block text-sm font-medium text-slate-700">
+            Goal ({campaign.currency})
+          </label>
+          <input
+            id="cm-goal"
+            type="number"
+            min={1}
+            step={1}
+            value={goalWhole}
+            onChange={(e) => setGoalWhole(e.target.value)}
+            className={inputCls}
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <label htmlFor="cm-summary" className="mb-1 block text-sm font-medium text-slate-700">
+            Summary
+          </label>
+          <input id="cm-summary" type="text" maxLength={500} value={summary} onChange={(e) => setSummary(e.target.value)} className={inputCls} />
+        </div>
+        <div>
+          <label htmlFor="cm-start" className="mb-1 block text-sm font-medium text-slate-700">
+            Start date
+          </label>
+          <input id="cm-start" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={inputCls} />
+        </div>
+        <div>
+          <label htmlFor="cm-end" className="mb-1 block text-sm font-medium text-slate-700">
+            End date
+          </label>
+          <input id="cm-end" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={inputCls} />
+        </div>
+      </div>
+      <label className="flex items-center gap-2 text-sm text-slate-700">
+        <input
+          type="checkbox"
+          checked={joinable}
+          onChange={(e) => setJoinable(e.target.checked)}
+          className="h-3.5 w-3.5 rounded border-slate-300 accent-sky-600"
+        />
+        Open to co-fundraisers
+      </label>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          size="sm"
+          onClick={() =>
+            onSave({
+              title,
+              summary: summary || undefined,
+              goalAmount: Math.round(Number(goalWhole) * 100),
+              joinable,
+              startDate: startDate || undefined,
+              endDate: endDate || undefined,
+            })
+          }
+          isLoading={isPending}
+        >
+          <Pencil className="h-3.5 w-3.5" />
+          Save changes
+        </Button>
+        {statusActions.map((a) => (
+          <Button
+            key={a.to}
+            size="sm"
+            variant="outline"
+            onClick={() => onSave({ status: a.to })}
+            isLoading={isPending}
+          >
+            {a.label}
+          </Button>
+        ))}
+        {campaign.status === "active" || campaign.status === "paused" ? (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onSave({ status: "completed" })}
+            isLoading={isPending}
+          >
+            Mark completed
+          </Button>
+        ) : null}
+        {campaign.status !== "cancelled" && campaign.status !== "completed" ? (
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-rose-300 text-rose-700 hover:bg-rose-50"
+            onClick={() => onSave({ status: "cancelled" })}
+            isLoading={isPending}
+          >
+            Cancel campaign
+          </Button>
+        ) : null}
+      </div>
     </div>
   );
 }

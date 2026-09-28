@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { useAuth } from "@/lib/auth/context";
 import { ChevronDown, ChevronUp, Filter, Shield, UserCheck, UserX } from "lucide-react";
 import { toast } from "sonner";
 import { usersApi } from "@/lib/api/users";
@@ -9,30 +10,54 @@ import type { User } from "@/lib/schemas/user";
 import { Card, CardContent, EmptyState } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Pager } from "@/components/pager";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Badge } from "@/components/ui/badge";
-import { ROLES, type Role } from "@/lib/enums";
+import { ENTITY_TYPES, ROLES, type EntityType, type Role } from "@/lib/enums";
 
 export default function AdminUsersPage() {
+  const { state } = useAuth();
+  const meId = state.status === "authenticated" ? state.user.id : null;
   const [roleFilter, setRoleFilter] = useState<Role | "">("");
+  const [entityType, setEntityType] = useState<EntityType | "">("");
+  const [verified, setVerified] = useState<string>("");
+  const [active, setActive] = useState<string>("");
   const [page, setPage] = useState(1);
   const limit = 20;
   const qc = useQueryClient();
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const filters = {
+    page,
+    limit,
+    role: roleFilter || undefined,
+    entityType: entityType || undefined,
+    isVerified: verified === "" ? undefined : verified === "true",
+    isActive: active === "" ? undefined : active === "true",
+  };
 
   const q = useQuery({
-    queryKey: ["admin", "users", { roleFilter, page }],
-    queryFn: () =>
-      usersApi.list({
-        page,
-        limit,
-        role: roleFilter || undefined,
-      }),
+    queryKey: ["admin", "users", filters],
+    queryFn: () => usersApi.list(filters),
   });
 
-  const applyFilter = (next: Role | "") => {
-    setRoleFilter(next);
+  const applyFilter = (fn: () => void) => {
+    fn();
     setPage(1);
   };
+
+  const removeUser = useMutation({
+    mutationFn: (id: string) => usersApi.remove(id),
+    onSuccess: () => {
+      toast.success("User removed from listings.");
+      qc.invalidateQueries({ queryKey: ["admin", "users"] });
+      qc.invalidateQueries({ queryKey: ["admin", "dashboard"] });
+    },
+    onError: (err) => {
+      console.error("Remove user failed:", err);
+      toast.error("We couldn't remove this user. Please try again.");
+    },
+  });
 
   return (
     <div className="flex flex-col gap-6">
@@ -50,7 +75,7 @@ export default function AdminUsersPage() {
           </div>
           <select
             value={roleFilter}
-            onChange={(e) => applyFilter(e.target.value as Role | "")}
+            onChange={(e) => applyFilter(() => setRoleFilter(e.target.value as Role | ""))}
             className="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm"
           >
             <option value="">All roles</option>
@@ -59,6 +84,36 @@ export default function AdminUsersPage() {
                 {r.replace(/_/g, " ")}
               </option>
             ))}
+          </select>
+          <select
+            value={entityType}
+            onChange={(e) => applyFilter(() => setEntityType(e.target.value as EntityType | ""))}
+            className="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm"
+          >
+            <option value="">All entity types</option>
+            {ENTITY_TYPES.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+          <select
+            value={verified}
+            onChange={(e) => applyFilter(() => setVerified(e.target.value))}
+            className="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm"
+          >
+            <option value="">Verified: any</option>
+            <option value="true">Verified</option>
+            <option value="false">Unverified</option>
+          </select>
+          <select
+            value={active}
+            onChange={(e) => applyFilter(() => setActive(e.target.value))}
+            className="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm"
+          >
+            <option value="">Active: any</option>
+            <option value="true">Active</option>
+            <option value="false">Inactive</option>
           </select>
         </CardContent>
       </Card>
@@ -84,8 +139,17 @@ export default function AdminUsersPage() {
           title="No users match the filter"
           description="Try clearing or changing your filter."
           action={
-            <Button variant="outline" onClick={() => applyFilter("")}>
-              Clear filter
+            <Button
+              variant="outline"
+              onClick={() => {
+                setRoleFilter("");
+                setEntityType("");
+                setVerified("");
+                setActive("");
+                setPage(1);
+              }}
+            >
+              Clear filters
             </Button>
           }
         />
@@ -101,6 +165,8 @@ export default function AdminUsersPage() {
                 qc.invalidateQueries({ queryKey: ["admin", "users"] });
                 qc.invalidateQueries({ queryKey: ["admin", "dashboard"] });
               }}
+              isSelf={u.id === meId}
+              onRequestDelete={() => setDeleteId(u._id)}
             />
           ))}
         </div>
@@ -115,6 +181,21 @@ export default function AdminUsersPage() {
           onPage={setPage}
         />
       ) : null}
+
+      <ConfirmDialog
+        open={deleteId !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteId(null);
+        }}
+        onConfirm={() => {
+          if (deleteId) removeUser.mutate(deleteId);
+        }}
+        title="Remove this user?"
+        description="They disappear from listings and can no longer sign in. Their donation history is kept for records."
+        confirmLabel="Yes, remove"
+        danger
+        isPending={removeUser.isPending}
+      />
     </div>
   );
 }
@@ -126,17 +207,28 @@ function UserRow({
   expanded,
   onToggle,
   onSaved,
+  isSelf,
+  onRequestDelete,
 }: {
   user: User;
   expanded: boolean;
   onToggle: () => void;
   onSaved: () => void;
+  isSelf: boolean;
+  onRequestDelete: () => void;
 }) {
   const [draft, setDraft] = useState<EditorState>({
     roles: user.roles,
     isActive: user.isActive,
     isVerified: user.isVerified,
   });
+
+  const userKey = `${user._id}:${user.roles.join(",")}:${user.isActive}:${user.isVerified}`;
+  const [syncedKey, setSyncedKey] = useState(userKey);
+  if (syncedKey !== userKey) {
+    setSyncedKey(userKey);
+    setDraft({ roles: user.roles, isActive: user.isActive, isVerified: user.isVerified });
+  }
 
   const save = useMutation({
     mutationFn: (payload: EditorState) => usersApi.adminUpdate(user._id, payload),
@@ -150,7 +242,20 @@ function UserRow({
     },
   });
 
+  const remove = useMutation({
+    mutationFn: () => usersApi.remove(user._id),
+    onSuccess: () => {
+      toast.success(`${user.name} has been removed from listings.`);
+      onSaved();
+    },
+    onError: (err) => {
+      console.error("Remove user failed:", err);
+      toast.error("We couldn't remove this user. Please try again.");
+    },
+  });
+
   const toggleRole = (role: Role) => {
+    if (isSelf && role === "system_admin" && draft.roles.includes("system_admin")) return;
     setDraft((d) => ({
       ...d,
       roles: d.roles.includes(role)
@@ -160,7 +265,7 @@ function UserRow({
   };
 
   const dirty =
-    draft.roles.join(",") !== user.roles.join(",") ||
+    [...draft.roles].sort().join(",") !== [...user.roles].sort().join(",") ||
     draft.isActive !== user.isActive ||
     draft.isVerified !== user.isVerified;
 
@@ -207,20 +312,29 @@ function UserRow({
               Roles
             </div>
             <div className="mt-2 flex flex-wrap gap-1.5">
-              {ROLES.map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  onClick={() => toggleRole(r)}
-                  className={`rounded-full border px-3 py-1 text-xs font-medium capitalize transition-colors ${
-                    draft.roles.includes(r)
-                      ? "border-sky-500 bg-sky-500 text-white"
-                      : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
-                  }`}
-                >
-                  {r.replace(/_/g, " ")}
-                </button>
-              ))}
+              {ROLES.map((r) => {
+                const locked = isSelf && r === "system_admin" && draft.roles.includes("system_admin");
+                return (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => toggleRole(r)}
+                    disabled={locked}
+                    title={locked ? "You can't remove your own system admin role" : undefined}
+                    className={`rounded-full border px-3 py-1 text-xs font-medium capitalize transition-colors ${
+                      locked
+                        ? "cursor-not-allowed opacity-50"
+                        : ""
+                    } ${
+                      draft.roles.includes(r)
+                        ? "border-sky-500 bg-sky-500 text-white"
+                        : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                    }`}
+                  >
+                    {r.replace(/_/g, " ")}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -230,9 +344,11 @@ function UserRow({
                 type="checkbox"
                 checked={draft.isActive}
                 onChange={(e) => setDraft((d) => ({ ...d, isActive: e.target.checked }))}
+                disabled={isSelf && user.isActive}
                 className="h-3.5 w-3.5 rounded border-slate-300 accent-sky-600"
               />
               Active
+              {isSelf ? <span className="text-xs text-slate-400">(you)</span> : null}
             </label>
             <label className="flex items-center gap-2 text-sm text-slate-700">
               <input
@@ -261,6 +377,15 @@ function UserRow({
                 Inactive users cannot sign in.
               </span>
             ) : null}
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+              onClick={onRequestDelete}
+              isLoading={remove.isPending}
+            >
+              Remove
+            </Button>
           </div>
         </CardContent>
       ) : null}

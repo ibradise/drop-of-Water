@@ -6,18 +6,24 @@ import { useState } from "react";
 import { CalendarDays, ChevronRight, FileText, Heart } from "lucide-react";
 import { toast } from "sonner";
 import { adminApi } from "@/lib/api/admin";
+import { useStaffCapabilities } from "@/lib/staff-capabilities";
 import { Card, CardContent, EmptyState } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Pager } from "@/components/pager";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Money } from "@/components/ui/money";
 
 export default function AdminReviewQueuePage() {
   const qc = useQueryClient();
+  const caps = useStaffCapabilities();
   const [rejectId, setRejectId] = useState<string | null>(null);
+  const [approveId, setApproveId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const limit = 20;
   const queueQ = useQuery({
-    queryKey: ["admin", "review-queue", { page: 1 }],
-    queryFn: () => adminApi.reviewQueue({ page: 1, limit: 50 }),
+    queryKey: ["admin", "review-queue", { page }],
+    queryFn: () => adminApi.reviewQueue({ page, limit }),
   });
 
   const approveUpdate = useMutation({
@@ -161,8 +167,9 @@ export default function AdminReviewQueuePage() {
                     <div className="flex flex-wrap gap-2 pt-2">
                       <Button
                         size="sm"
-                        onClick={() => approveUpdate.mutate(u._id)}
+                        onClick={() => caps.isContentManager && setApproveId(u._id)}
                         isLoading={approveUpdate.isPending && approveUpdate.variables === u._id}
+                        disabled={!caps.isContentManager}
                       >
                         Approve
                       </Button>
@@ -201,6 +208,31 @@ export default function AdminReviewQueuePage() {
         reasonMaxLength={1000}
         isPending={rejectUpdate.isPending}
       />
+
+      <ConfirmDialog
+        open={approveId !== null}
+        onOpenChange={(open) => {
+          if (!open) setApproveId(null);
+        }}
+        onConfirm={() => {
+          if (approveId) approveUpdate.mutate(approveId);
+        }}
+        title="Publish this update?"
+        description="It goes live on the project and campaign timelines immediately. You can unpublish it later for edits."
+        confirmLabel="Publish"
+        isPending={approveUpdate.isPending}
+      />
+
+      {queueQ.data && queueQ.data.donations.data.length > 0 ? (
+        <Pager
+          page={queueQ.data.donations.meta.page}
+          limit={queueQ.data.donations.meta.limit}
+          total={queueQ.data.donations.meta.total}
+          hasPrevPage={queueQ.data.donations.meta.hasPrevPage}
+          hasNextPage={queueQ.data.donations.meta.hasNextPage}
+          onPage={setPage}
+        />
+      ) : null}
     </div>
   );
 }

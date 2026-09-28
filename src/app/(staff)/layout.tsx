@@ -5,27 +5,29 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth/context";
 import { hasAnyRole, ROLE_GROUPS } from "@/lib/enums";
+import { useStaffCapabilities } from "@/lib/staff-capabilities";
 import { cn } from "@/lib/cn";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 const ADMIN_ROLES = ROLE_GROUPS.adminDashboard;
 
-const TABS = [
-  { href: "/admin", label: "Overview" },
-  { href: "/admin/review-queue", label: "Review queue" },
-  { href: "/admin/projects", label: "Projects" },
-  { href: "/admin/campaigns", label: "Campaigns" },
-  { href: "/admin/sponsorships", label: "Sponsors" },
-  { href: "/admin/donations", label: "Donations" },
-  { href: "/admin/impact-updates/pending", label: "Pending updates" },
-  { href: "/admin/users", label: "Users" },
+const ALL_TABS = [
+  { href: "/admin", label: "Overview", cap: "isStaff" as const },
+  { href: "/admin/review-queue", label: "Review queue", cap: "isContentManager" as const },
+  { href: "/admin/projects", label: "Projects", cap: "isProjectManager" as const },
+  { href: "/admin/campaigns", label: "Campaigns", cap: "isCampaignManager" as const },
+  { href: "/admin/sponsorships", label: "Sponsors", cap: "isSponsorshipManager" as const },
+  { href: "/admin/donations", label: "Donations", cap: "isFinance" as const },
+  { href: "/admin/impact-updates/pending", label: "Pending updates", cap: "isContentManager" as const },
+  { href: "/admin/users", label: "Users", cap: "isSystemAdmin" as const },
 ];
 
 export default function StaffLayout({ children }: { children: ReactNode }) {
   const { state } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const caps = useStaffCapabilities();
 
   useEffect(() => {
     if (state.status === "loading") return;
@@ -49,15 +51,14 @@ export default function StaffLayout({ children }: { children: ReactNode }) {
       <div className="mx-auto max-w-md">
         <Card>
           <CardHeader>
-            <CardTitle>Staff access required</CardTitle>
+            <CardTitle>You don&apos;t have staff access yet</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-2 text-sm text-slate-700">
             <p>
-              The admin tools require a <code>program_director</code>,{" "}
-              <code>finance_admin</code>, or <code>system_admin</code> role.
+              These tools are for program, finance, and system staff.
             </p>
             <p className="text-slate-500">
-              Ask a system admin to grant you a role from the user admin screen.
+              Ask your administrator to give you access, then try again.
             </p>
             <div className="mt-2 flex gap-2">
               <Link href="/me">
@@ -70,6 +71,8 @@ export default function StaffLayout({ children }: { children: ReactNode }) {
     );
   }
 
+  const tabs = ALL_TABS.filter((t) => caps[t.cap]);
+
   return (
     <div className="flex flex-col gap-8">
       <header className="flex flex-col gap-1">
@@ -79,7 +82,7 @@ export default function StaffLayout({ children }: { children: ReactNode }) {
         </p>
       </header>
       <nav className="flex flex-wrap gap-2 border-b border-slate-200 pb-3 text-sm">
-        {TABS.map((t) => {
+        {tabs.map((t) => {
           const active =
             t.href === "/admin" ? pathname === "/admin" : pathname.startsWith(t.href);
           return (

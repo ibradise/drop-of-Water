@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { ArrowRight, Award, Heart, Pencil, ShieldCheck, Sparkles, User as UserIcon } from "lucide-react";
+import { ArrowRight, Award, FileText, Heart, Pencil, ShieldCheck, Sparkles, User as UserIcon } from "lucide-react";
 import { useAuth } from "@/lib/auth/context";
 import { hasAnyRole, ROLE_GROUPS } from "@/lib/enums";
 import { usersApi } from "@/lib/api/users";
@@ -18,7 +18,6 @@ const ACTIONS = [
   { href: "/me/campaigns", label: "Run your own campaign", icon: Sparkles },
   { href: "/me/notifications", label: "Notifications", icon: ArrowRight },
 ];
-
 export default function MePage() {
   const { state } = useAuth();
   const meQ = useQuery({
@@ -117,6 +116,17 @@ export default function MePage() {
                 <span className="flex items-center gap-2">
                   <ShieldCheck className="h-4 w-4 text-slate-500" />
                   Staff tools (admin)
+                </span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Button>
+            </Link>
+          ) : null}
+          {hasAnyRole(u.roles, ROLE_GROUPS.contentContributors) ? (
+            <Link href="/me/impact-updates">
+              <Button variant="outline" className="w-full justify-between">
+                <span className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-slate-500" />
+                  Write a field update
                 </span>
                 <ArrowRight className="h-3.5 w-3.5" />
               </Button>

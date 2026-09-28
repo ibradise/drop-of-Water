@@ -11,7 +11,7 @@ import { ArrowRight, Eye, EyeOff, Lock, Mail, User } from "lucide-react";
 import { useAuth } from "@/lib/auth/context";
 import { getSafeNext } from "@/lib/safe-next";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 
 const schema = z
   .object({

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { CalendarDays } from "lucide-react";
 import { adminApi } from "@/lib/api/admin";
+import { useStaffCapabilities } from "@/lib/staff-capabilities";
 import { Card, CardContent, EmptyState } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -12,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 
 export default function AdminPendingUpdatesPage() {
   const qc = useQueryClient();
+  const caps = useStaffCapabilities();
   const [page, setPage] = useState(1);
   const limit = 20;
 
@@ -49,6 +51,7 @@ export default function AdminPendingUpdatesPage() {
     },
   });
   const [rejectId, setRejectId] = useState<string | null>(null);
+  const [approveId, setApproveId] = useState<string | null>(null);
 
   return (
     <div className="flex flex-col gap-6">
@@ -99,8 +102,9 @@ export default function AdminPendingUpdatesPage() {
                   <div className="flex flex-wrap gap-2 pt-2">
                     <Button
                       size="sm"
-                      onClick={() => approve.mutate(u._id)}
+                      onClick={() => caps.isContentManager && setApproveId(u._id)}
                       isLoading={approve.isPending && approve.variables === u._id}
+                      disabled={!caps.isContentManager}
                     >
                       Approve
                     </Button>
@@ -168,6 +172,20 @@ export default function AdminPendingUpdatesPage() {
         reasonPlaceholder="What should the contributor fix?"
         reasonMaxLength={1000}
         isPending={reject.isPending}
+      />
+
+      <ConfirmDialog
+        open={approveId !== null}
+        onOpenChange={(open) => {
+          if (!open) setApproveId(null);
+        }}
+        onConfirm={() => {
+          if (approveId) approve.mutate(approveId);
+        }}
+        title="Publish this update?"
+        description="It goes live on the project and campaign timelines immediately. You can unpublish it later for edits."
+        confirmLabel="Publish"
+        isPending={approve.isPending}
       />
     </div>
   );
