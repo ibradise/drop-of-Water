@@ -59,20 +59,6 @@ export function CardContent({ children, className, ...rest }: HTMLAttributes<HTM
   );
 }
 
-export function CardFooter({ children, className, ...rest }: HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div
-      className={cn(
-        "flex items-center justify-end gap-2 border-t border-slate-100 bg-slate-50/40 p-4",
-        className,
-      )}
-      {...rest}
-    >
-      {children}
-    </div>
-  );
-}
-
 export function EmptyState({
   title,
   description,

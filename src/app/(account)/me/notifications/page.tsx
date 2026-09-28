@@ -9,6 +9,8 @@ import { Card, CardContent, EmptyState } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatDateTime } from "@/lib/format-date";
 
+const isMockMode = process.env.NEXT_PUBLIC_API_MOCK === "true";
+
 export default function MeNotificationsPage() {
   const qc = useQueryClient();
   const [tokenInput, setTokenInput] = useState("");
@@ -55,7 +57,9 @@ export default function MeNotificationsPage() {
         <CardContent className="flex flex-col gap-3">
           <h3 className="text-sm font-semibold text-slate-900">Push notifications</h3>
           <p className="text-xs text-slate-500">
-            Paste your device token below. In a development build, any test string works.
+            {isMockMode
+              ? "Paste your device token below. In a development build, any test string works."
+              : "Paste the device token from your app build."}
           </p>
           <form
             className="flex flex-col gap-2 sm:flex-row"
@@ -69,7 +73,7 @@ export default function MeNotificationsPage() {
               type="text"
               value={tokenInput}
               onChange={(e) => setTokenInput(e.target.value)}
-              placeholder="Device token (any test string works in dev)"
+              placeholder={isMockMode ? "Device token (any test string works in dev)" : "Device token"}
               aria-label="Device token"
               className="flex-1 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
             />

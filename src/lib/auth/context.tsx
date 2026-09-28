@@ -140,7 +140,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!fb) return null;
       try {
         return await fb.getIdToken(false);
-      } catch {
+      } catch (err) {
+        console.warn("Failed to get Firebase ID token:", err);
         return null;
       }
     });
@@ -351,9 +352,4 @@ export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used within an AuthProvider");
   return ctx;
-}
-
-export function useCurrentUser(): User | null {
-  const { state } = useAuth();
-  return state.status === "authenticated" ? state.user : null;
 }

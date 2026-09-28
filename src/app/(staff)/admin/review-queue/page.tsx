@@ -104,7 +104,7 @@ export default function AdminReviewQueuePage() {
                         <div className="flex items-center gap-2">
                           <Badge tone="warning">manual review</Badge>
                           {d.requiresManualReview ? (
-                            <Badge tone="warning">high-value</Badge>
+                            <Badge tone="warning">{d.paidAt ? "high-value · captured" : "high-value · uncaptured"}</Badge>
                           ) : null}
                         </div>
                         <div className="text-sm font-medium text-slate-900">

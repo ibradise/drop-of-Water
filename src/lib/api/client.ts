@@ -187,5 +187,3 @@ export const api = {
   delete: <T>(path: string, opts?: ApiFetchOptions) =>
     apiFetch<T>(path, { ...opts, method: "DELETE" }),
 };
-
-export { isMockMode };

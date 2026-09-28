@@ -136,7 +136,7 @@ export function DonateFlow({ campaignId }: { campaignId: string }) {
       } else {
         toast.success("Donation recorded. We'll notify you when it settles.");
         router.push(
-          `/campaigns/${campaignId}/donate/return?status=manual&tx_ref=${data.donation.transactionId ?? ""}`,
+          `/campaigns/${campaignId}/donate/return?status=manual&tx_ref=${encodeURIComponent(data.donation.transactionId ?? "")}`,
         );
       }
     },

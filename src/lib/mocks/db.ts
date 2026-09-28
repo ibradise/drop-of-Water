@@ -559,7 +559,3 @@ export function getDb(): Db {
   if (!dbInstance) dbInstance = buildDb();
   return dbInstance;
 }
-
-export function resetDb(): void {
-  dbInstance = buildDb();
-}
