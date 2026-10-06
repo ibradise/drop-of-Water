@@ -40,7 +40,7 @@ export default function RootLayout({
             <MockBoot>
               <SiteHeader />
               <main className="flex-1 overflow-x-clip">
-                <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
+                <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
                   {children}
                 </div>
               </main>

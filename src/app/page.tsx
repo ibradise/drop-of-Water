@@ -110,7 +110,7 @@ export default function HomePage() {
 
       {/* ── Stats ────────────────────────────────────────── */}
       <section className="w-screen ml-[calc(50%-50vw)] bg-white py-10 sm:py-12">
-        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-4 px-4 sm:grid-cols-3 sm:px-6">
+        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 px-4 sm:grid-cols-3 sm:px-6">
           <Stat
             label="Active campaigns"
             value={String(activeCount)}
@@ -127,8 +127,8 @@ export default function HomePage() {
       </section>
 
       {/* ── Features ─────────────────────────────────────── */}
-      <section className="w-screen ml-[calc(50%-50vw)] bg-cyan-50 py-12 sm:py-16">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+      <section className="w-screen ml-[calc(50%-50vw)] bg-cyan-50 py-16 sm:py-24">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <div className="grid gap-4 sm:grid-cols-2">
             {FEATURES.map((f) => (
               <div
@@ -153,8 +153,8 @@ export default function HomePage() {
       </section>
 
       {/* ── Active campaigns ─────────────────────────────── */}
-      <section className="w-screen ml-[calc(50%-50vw)] bg-sky-50 py-12 sm:py-16" id="active-campaigns">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+      <section className="w-screen ml-[calc(50%-50vw)] bg-sky-50 py-16 sm:py-24" id="active-campaigns">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-end">
             <div>
               <span className="text-xs font-semibold uppercase tracking-wide text-sky-700">
@@ -207,8 +207,8 @@ export default function HomePage() {
       </section>
 
       {/* ── Fundable projects ────────────────────────────── */}
-      <section className="w-screen ml-[calc(50%-50vw)] bg-white py-12 sm:py-16">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+      <section className="w-screen ml-[calc(50%-50vw)] bg-white py-16 sm:py-24">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-end">
             <div>
               <span className="text-xs font-semibold uppercase tracking-wide text-sky-700">
@@ -263,10 +263,10 @@ export default function HomePage() {
       </section>
 
       {/* ── CTA ──────────────────────────────────────────── */}
-      <section className="w-screen ml-[calc(50%-50vw)] relative overflow-hidden bg-gradient-to-br from-sky-600 via-cyan-600 to-cyan-700 py-14 text-white sm:py-20">
+      <section className="w-screen ml-[calc(50%-50vw)] relative overflow-hidden bg-gradient-to-br from-sky-600 via-cyan-600 to-cyan-700 py-16 text-white sm:py-24">
         <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-32 -left-10 h-72 w-72 rounded-full bg-cyan-300/20 blur-3xl" />
-        <div className="relative mx-auto max-w-6xl px-4 sm:px-6">
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
           <span className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-medium text-white backdrop-blur">
             <Heart className="h-3 w-3" />
             Make a difference
